@@ -130,6 +130,36 @@ body {
   pointer-events: none;
 }
 
+.slot-solve {
+  cursor: pointer;
+  border-color: rgba(99,179,237,0.35);
+  background: rgba(37,99,235,0.1);
+  transition: background 0.15s, border-color 0.15s;
+}
+.slot-solve:hover {
+  background: rgba(37,99,235,0.22);
+  border-color: rgba(99,179,237,0.6);
+}
+.slot-solve::before {
+  content: '🪄';
+  position: absolute;
+  top: 38%; left: 50%;
+  transform: translate(-50%,-50%);
+  font-size: 2.2em;
+  pointer-events: none;
+}
+.slot-solve::after {
+  content: 'Solve';
+  position: absolute;
+  top: 72%; left: 50%;
+  transform: translate(-50%,-50%);
+  font-size: 0.72em;
+  color: rgba(147,197,253,0.75);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  pointer-events: none;
+}
+
 /* ─── Cards ────────────────────────────────────────────────── */
 .card {
   position: absolute;
@@ -323,6 +353,48 @@ body {
   transition: background 0.15s;
 }
 .win-btn:hover { background: #3b82f6; }
+
+/* ─── Stuck Banner ──────────────────────────────────────────── */
+#stuck-banner {
+  position: fixed;
+  bottom: 68px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: #e2e8f0;
+  font-size: 0.88em;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s, transform 0.25s;
+  z-index: 500;
+  white-space: nowrap;
+}
+#stuck-banner.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
+}
+#stuck-banner .stuck-icon { font-size: 1.3em; }
+.stuck-btn {
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-size: 0.85em;
+  font-family: inherit;
+  cursor: pointer;
+}
+.stuck-btn:hover { background: #3b82f6; }
+.stuck-btn.sec { background: #334155; }
+.stuck-btn.sec:hover { background: #475569; }
 </style>
 </head>
 <body>
@@ -369,6 +441,13 @@ body {
   <div id="win-title">🎉 You Win!</div>
   <div id="win-stats"></div>
   <button class="win-btn" onclick="newGame()">Play Again</button>
+</div>
+
+<div id="stuck-banner">
+  <span class="stuck-icon">🚫</span>
+  <span>No moves left</span>
+  <button class="stuck-btn sec" onclick="undo()">Undo</button>
+  <button class="stuck-btn" onclick="newGame()">New Game</button>
 </div>
 
 <script>
@@ -554,6 +633,7 @@ function newGame() {
   };
 
   document.getElementById('win-overlay').classList.remove('show');
+  document.getElementById('stuck-banner').classList.remove('show');
   startTimer();
   render();
   syncUI();
@@ -930,7 +1010,9 @@ function render() {
 
   // ── Waste ──────────────────────────────────────────────
   const wx = cx(1), wy = ROW1_Y;
-  boardEl.appendChild(makeSlot('', wx, wy));
+  const wasteSlot = makeSlot(G.waste.length === 0 ? 'slot-solve' : '', wx, wy);
+  if (G.waste.length === 0) wasteSlot.addEventListener('click', autoComplete);
+  boardEl.appendChild(wasteSlot);
 
   if (G.waste.length) {
     const showFrom = G.drawMode===3 ? Math.max(0, G.waste.length-3) : G.waste.length-1;
@@ -1166,12 +1248,58 @@ function startDrag(e, fp, fc, fi, cards) {
 }
 
 // ════════════════════════════════════════════════════
+//  STUCK DETECTION
+//
+//  Checks every legal move type:
+//   1. Stock can be drawn from
+//   2. Waste top → foundation or tableau
+//   3. Any face-up tableau card → foundation (top only)
+//      or → another tableau column (including sequences)
+//  Returns false the moment any legal move is found.
+// ════════════════════════════════════════════════════
+function isStuck() {
+  // Can still draw from stock
+  if (G.stock.length > 0) return false;
+
+  // Waste top playable?
+  if (G.waste.length > 0) {
+    const c = G.waste[G.waste.length - 1];
+    if (bestFoundIdx(c) >= 0) return false;
+    for (let tc = 0; tc < 7; tc++) if (canStack(c, tc)) return false;
+  }
+
+  // Any tableau move possible?
+  for (let col = 0; col < 7; col++) {
+    const pile = G.tab[col];
+    for (let ci = 0; ci < pile.length; ci++) {
+      const c = pile[ci];
+      if (!c.up) continue;
+      // Top card can go to foundation
+      if (ci === pile.length - 1 && bestFoundIdx(c) >= 0) return false;
+      // Any face-up card (or sequence starting here) can go to another column
+      for (let tc = 0; tc < 7; tc++) {
+        if (tc === col) continue;
+        if (canStack(c, tc)) return false;
+      }
+    }
+  }
+
+  // Waste can be recycled back to stock (still costs a move, may unblock)
+  if (G.waste.length > 0) return false;
+
+  return true;
+}
+
+// ════════════════════════════════════════════════════
 //  SYNC UI
 // ════════════════════════════════════════════════════
 function syncUI() {
   document.getElementById('el-score').textContent = G.score;
   document.getElementById('el-moves').textContent = G.moves;
   document.getElementById('btn-undo').disabled = !history.length;
+
+  const stuck = isStuck();
+  document.getElementById('stuck-banner').classList.toggle('show', stuck);
 }
 
 // ════════════════════════════════════════════════════
