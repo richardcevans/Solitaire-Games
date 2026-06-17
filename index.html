@@ -61,6 +61,13 @@ body {
   box-shadow: 0 0 8px rgba(37,99,235,0.5);
 }
 
+.topbar-sep {
+  width: 1px;
+  height: 24px;
+  background: rgba(255,255,255,0.15);
+  margin: 0 4px;
+}
+
 #top-stats {
   display: flex;
   gap: 18px;
@@ -323,8 +330,15 @@ body {
 <div id="topbar">
   <div id="game-title">♠ Klondike Solitaire</div>
   <div class="mode-group">
+    <button class="mode-btn active" id="btn-easy"   onclick="setDifficulty('easy')">Easy</button>
+    <button class="mode-btn"        id="btn-medium" onclick="setDifficulty('medium')">Medium</button>
+    <button class="mode-btn"        id="btn-hard"   onclick="setDifficulty('hard')">Hard</button>
+    <button class="mode-btn"        id="btn-expert" onclick="setDifficulty('expert')">Expert</button>
+  </div>
+  <div class="topbar-sep"></div>
+  <div class="mode-group">
     <button class="mode-btn active" id="btn-d1" onclick="setDraw(1)">Draw 1</button>
-    <button class="mode-btn" id="btn-d3" onclick="setDraw(3)">Draw 3</button>
+    <button class="mode-btn"        id="btn-d3" onclick="setDraw(3)">Draw 3</button>
   </div>
   <div id="top-stats">
     <span>⏱ <b id="el-time">0:00</b></span>
@@ -390,15 +404,81 @@ const PIPS = {
 //  STATE
 // ════════════════════════════════════════════════════
 let G = {};
-let history = [];
-let selState = null;   // { pile, col, idx, cards }
-let hintSet  = null;   // Set of card references to highlight
+let history  = [];
+let selState = null;
+let hintSet  = null;
 let timerID  = null;
 let elapsed  = 0;
+let difficulty = 'easy';   // 'easy' | 'medium' | 'hard' | 'expert'
 
 function rankVal(r)   { return RANKS.indexOf(r) + 1; }
 function isRed(s)     { return RED.has(s); }
 function suitIdx(s)   { return SUITS.indexOf(s); }
+
+// ════════════════════════════════════════════════════
+//  DEAL DIFFICULTY SCORING
+//
+//  Scores a freshly dealt state by measuring how hard
+//  it is to access the four Aces.
+//
+//  Each Ace contributes:
+//   - 0 pts  : already face-up and on top (instantly playable)
+//   - +1/card : each face-up card sitting on top (easy to clear)
+//   - +3/card : each face-down card sitting on top (must be uncovered first)
+//   - +6      : Ace is in the stock (unknown timing)
+//   - +depth  : extra penalty for how deep in the stock it sits
+//
+//  Lower total = easier deal.
+//  Typical range for a random deal: ~8 – 50+
+// ════════════════════════════════════════════════════
+function scoreDeal(tab, stock) {
+  let score = 0;
+
+  for (const suit of SUITS) {
+    let found = false;
+
+    // Search tableau columns
+    for (let col = 0; col < 7 && !found; col++) {
+      const pile = tab[col];
+      for (let i = 0; i < pile.length; i++) {
+        if (pile[i].suit !== suit || pile[i].rank !== 'A') continue;
+        found = true;
+        // Count cards on top of the Ace (indices i+1 … end)
+        for (let j = i + 1; j < pile.length; j++) {
+          score += pile[j].up ? 1 : 3;
+        }
+        break;
+      }
+    }
+
+    // Ace is in the stock
+    if (!found) {
+      const idx = stock.findIndex(c => c.suit === suit && c.rank === 'A');
+      if (idx >= 0) {
+        const depthFromTop = stock.length - 1 - idx; // 0 = next to flip
+        score += 6 + depthFromTop;
+      }
+    }
+  }
+
+  return score;
+}
+
+// Score ranges tuned so each bucket is reachable in < 50 random tries on average.
+// Expert bypasses scoring entirely (raw random deal, potentially unwinnable).
+const DIFF_RANGES = {
+  easy   : [0,  18],
+  medium : [18, 32],
+  hard   : [32, Infinity],
+};
+
+function setDifficulty(d) {
+  difficulty = d;
+  ['easy','medium','hard','expert'].forEach(k =>
+    document.getElementById('btn-'+k).classList.toggle('active', k === d)
+  );
+  newGame();
+}
 
 // ════════════════════════════════════════════════════
 //  DECK / DEAL
@@ -417,32 +497,61 @@ function shuffle(a) {
   return a;
 }
 
-function newGame() {
-  clearInterval(timerID);
-  elapsed = 0;
-  history = [];
-  selState = null;
-  hintSet  = null;
-  G = {
-    drawMode : G.drawMode || 1,
-    stock    : [],
-    waste    : [],
-    found    : [[],[],[],[]],  // indexed by suitIdx
-    tab      : [[],[],[],[],[],[],[]],
-    score    : 0,
-    moves    : 0
-  };
-
+function dealCards() {
+  // Returns { tab, stock } for a fresh shuffle
   const deck = shuffle(makeDeck());
+  const tab = [[],[],[],[],[],[],[]];
   let i = 0;
   for (let c = 0; c < 7; c++) {
     for (let r = 0; r <= c; r++) {
       const card = deck[i++];
       card.up = r === c;
-      G.tab[c].push(card);
+      tab[c].push(card);
     }
   }
-  while (i < 52) { deck[i].up = false; G.stock.push(deck[i++]); }
+  const stock = [];
+  while (i < 52) { deck[i].up = false; stock.push(deck[i++]); }
+  return { tab, stock };
+}
+
+function newGame() {
+  clearInterval(timerID);
+  elapsed = 0;
+  history  = [];
+  selState = null;
+  hintSet  = null;
+
+  // ── Find a deal that matches the target difficulty ──
+  // Expert mode skips scoring and uses the first random deal.
+  // For other modes we try up to 100 shuffles to land in range.
+  let tab, stock;
+  const range = DIFF_RANGES[difficulty];
+
+  if (difficulty === 'expert' || !range) {
+    ({ tab, stock } = dealCards());
+  } else {
+    let best = null, bestScore = Infinity;
+    for (let attempt = 0; attempt < 100; attempt++) {
+      const deal = dealCards();
+      const s = scoreDeal(deal.tab, deal.stock);
+      // Perfect hit — use immediately
+      if (s >= range[0] && s < range[1]) { tab = deal.tab; stock = deal.stock; break; }
+      // Track closest match as fallback
+      const dist = s < range[0] ? range[0] - s : s - range[1];
+      if (dist < bestScore) { bestScore = dist; best = deal; }
+    }
+    // Use fallback if no perfect match found
+    if (!tab) { tab = best.tab; stock = best.stock; }
+  }
+
+  G = {
+    drawMode : G.drawMode || 1,
+    stock, tab,
+    waste : [],
+    found : [[],[],[],[]],
+    score : 0,
+    moves : 0
+  };
 
   document.getElementById('win-overlay').classList.remove('show');
   startTimer();
@@ -579,14 +688,14 @@ function execMove(cards, fp, fc, fi, tp, tc) {
 }
 
 function tryAutoFound(card, fp, fc, fi) {
-  // Must be the top card of its pile
-  if (fp==='tab' && fi !== G.tab[fc].length-1) return false;
-
-  // 1. Try foundation first
-  const dfi = bestFoundIdx(card);
-  if (dfi >= 0) {
-    execMove([card], fp, fc, fi, 'found', dfi);
-    return true;
+  // 1. Try foundation — only for the top card of a pile
+  const isTopCard = fp !== 'tab' || fi === G.tab[fc].length - 1;
+  if (isTopCard) {
+    const dfi = bestFoundIdx(card);
+    if (dfi >= 0) {
+      execMove([card], fp, fc, fi, 'found', dfi);
+      return true;
+    }
   }
 
   // 2. Try tableau — prefer a column that would reveal a face-down card
@@ -832,9 +941,11 @@ function render() {
       const el = makeCard(card, wx+xOff, wy, 8+i);
       if (isTop) {
         if (selState && selState.pile==='waste') el.classList.add('card-sel');
-        el.addEventListener('mousedown', e => startDrag(e,'waste',0,i,[card]));
-        el.addEventListener('dblclick',  () => tryAutoFound(card,'waste',0,i));
-        el.addEventListener('click',     e => onCardClick(e,'waste',0,i,[card]));
+        el.addEventListener('mousedown', e => {
+          if (e.detail >= 2) { e.preventDefault(); tryAutoFound(card,'waste',0,i); return; }
+          startDrag(e,'waste',0,i,[card]);
+        });
+        el.addEventListener('click', e => onCardClick(e,'waste',0,i,[card]));
       }
       boardEl.appendChild(el);
     }
@@ -877,10 +988,8 @@ function render() {
         if (isSel && ci===selState.idx) el.classList.add('card-sel');
 
         el.addEventListener('mousedown', e => {
+          if (e.detail >= 2) { e.preventDefault(); tryAutoFound(card,'tab',col,ci); return; }
           startDrag(e,'tab',col,ci,pile.slice(ci));
-        });
-        el.addEventListener('dblclick', () => {
-          if (isTop) tryAutoFound(card,'tab',col,ci);
         });
         el.addEventListener('click', e => {
           onCardClick(e,'tab',col,ci,pile.slice(ci));
