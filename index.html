@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Klondike Solitaire</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #1d6b25;
+  background-image:
+    radial-gradient(ellipse 80% 60% at 50% 40%, #257a2e 0%, #165220 100%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6'%3E%3Ccircle cx='1' cy='1' r='0.8' fill='%23000' opacity='0.07'/%3E%3Ccircle cx='4' cy='4' r='0.8' fill='%23000' opacity='0.07'/%3E%3C/svg%3E");
+  min-height: 100vh;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  overflow-x: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ─── Top Bar ─────────────────────────────────────────────── */
+#topbar {
+  height: 50px;
+  background: linear-gradient(to bottom, #111827, #1f2937);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 18px;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.55);
+  position: relative;
+  z-index: 100;
+}
+
+#game-title {
+  font-size: 1.15em;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  flex: 1;
+  color: #e5e7eb;
+}
+
+.mode-group { display: flex; gap: 4px; }
+
+.mode-btn {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.18);
+  color: #d1d5db;
+  padding: 4px 15px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.8em;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.mode-btn:hover { background: rgba(255,255,255,0.2); color: #fff; }
+.mode-btn.active {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+  box-shadow: 0 0 8px rgba(37,99,235,0.5);
+}
+
+#top-stats {
+  display: flex;
+  gap: 18px;
+  font-size: 0.82em;
+  color: #9ca3af;
+}
+#top-stats b { color: #f3f4f6; font-weight: 600; }
+
+/* ─── Board ────────────────────────────────────────────────── */
+#board {
+  position: relative;
+  padding-bottom: 80px;
+  min-height: calc(100vh - 50px - 58px);
+}
+
+/* ─── Slots ────────────────────────────────────────────────── */
+.slot {
+  position: absolute;
+  width: 88px;
+  height: 128px;
+  border: 2px dashed rgba(255,255,255,0.18);
+  border-radius: 9px;
+  background: rgba(0,0,0,0.13);
+}
+
+.slot-foundation { border-style: solid; border-color: rgba(255,255,255,0.15); }
+.slot-foundation::after {
+  content: attr(data-suit);
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+  font-size: 2.6em;
+  opacity: 0.22;
+  color: #fff;
+  pointer-events: none;
+}
+.slot-foundation.red-f::after { color: #fca5a5; }
+
+.slot-empty-k::after {
+  content: 'K';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+  font-size: 2.8em;
+  opacity: 0.16;
+  color: #fff;
+  font-family: Georgia, serif;
+  font-style: italic;
+  pointer-events: none;
+}
+
+.slot-stock-empty { cursor: pointer; }
+.slot-stock-empty::after {
+  content: '↺';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+  font-size: 3em;
+  color: rgba(255,255,255,0.28);
+  pointer-events: none;
+}
+
+/* ─── Cards ────────────────────────────────────────────────── */
+.card {
+  position: absolute;
+  width: 88px;
+  height: 128px;
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+/* Card back */
+.card-back {
+  background: #1e40af;
+  background-image:
+    repeating-linear-gradient(45deg,
+      rgba(255,255,255,0.05) 0, rgba(255,255,255,0.05) 2px,
+      transparent 2px, transparent 12px),
+    repeating-linear-gradient(-45deg,
+      rgba(255,255,255,0.05) 0, rgba(255,255,255,0.05) 2px,
+      transparent 2px, transparent 12px);
+  border: 2px solid #1e3a8a;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.08);
+}
+
+/* Inner border detail on card back */
+.card-back::after {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 5px;
+}
+
+/* Card face */
+.card-face {
+  background: #ffffff;
+  border: 1px solid #c0c0c0;
+  box-shadow: 0 2px 7px rgba(0,0,0,0.32);
+  overflow: hidden;
+}
+.card-face.red  { color: #c0392b; }
+.card-face.black { color: #1a1a1a; }
+
+/* Corner rank + suit */
+.corner {
+  position: absolute;
+  font-size: 0.72em;
+  font-weight: 700;
+  line-height: 1.15;
+  text-align: center;
+  width: 16px;
+  pointer-events: none;
+}
+.corner.tl { top: 4px; left: 5px; }
+.corner.br { bottom: 4px; right: 5px; transform: rotate(180deg); }
+
+/* Pips */
+.pip {
+  position: absolute;
+  font-size: 1.05em;
+  line-height: 1;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.pip.inv { transform: translate(-50%, -50%) rotate(180deg); }
+
+.pip-ace {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 3.4em;
+  line-height: 1;
+  pointer-events: none;
+}
+
+/* Face cards (J/Q/K) */
+.face-art {
+  position: absolute;
+  top: 22px; left: 6px; right: 6px; bottom: 22px;
+  border: 1.5px solid currentColor;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+  opacity: 0.8;
+  pointer-events: none;
+}
+.face-letter {
+  font-size: 2.9em;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-weight: 700;
+  line-height: 1;
+}
+.face-suit { font-size: 1.1em; }
+
+/* Selection: blue bar at top (MS style) */
+.card-sel::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 7px;
+  background: linear-gradient(90deg, #2563eb, #60a5fa);
+  border-radius: 8px 8px 0 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Hint: gold outline */
+.card-hint {
+  box-shadow: 0 0 0 3px #fbbf24, 0 2px 7px rgba(0,0,0,0.32) !important;
+}
+
+/* Drag ghost */
+#drag-ghost {
+  position: fixed;
+  top: 0; left: 0;
+  pointer-events: none;
+  z-index: 9500;
+}
+#drag-ghost .card { position: absolute; }
+
+/* ─── Toolbar ───────────────────────────────────────────────── */
+#toolbar {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: 58px;
+  background: linear-gradient(to top, #0a0f1a, #111827);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 -2px 12px rgba(0,0,0,0.6);
+  z-index: 200;
+}
+
+.tbtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  background: none;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 5px 18px;
+  border-radius: 7px;
+  font-size: 0.68em;
+  font-family: inherit;
+  transition: all 0.15s;
+  min-width: 64px;
+}
+.tbtn:hover:not(:disabled) { background: rgba(255,255,255,0.08); color: #e5e7eb; }
+.tbtn:disabled { opacity: 0.35; cursor: default; }
+.tbtn-icon { font-size: 1.55em; line-height: 1; }
+
+/* ─── Win Overlay ───────────────────────────────────────────── */
+#win-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at center, rgba(15,40,100,0.92) 0%, rgba(0,0,0,0.75) 100%);
+  z-index: 9999;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  color: #fff;
+  text-align: center;
+}
+#win-overlay.show { display: flex; }
+#win-title {
+  font-size: 3.8em;
+  font-weight: 700;
+  text-shadow: 0 0 40px rgba(250,204,21,0.7), 0 2px 8px rgba(0,0,0,0.8);
+  margin-bottom: 12px;
+  animation: pop 0.4s ease-out;
+}
+@keyframes pop { from { transform: scale(0.7); opacity:0; } to { transform: scale(1); opacity:1; } }
+#win-stats { font-size: 1em; color: #93c5fd; margin-bottom: 28px; line-height: 1.8; }
+.win-btn {
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 30px;
+  padding: 12px 36px;
+  font-size: 1em;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(37,99,235,0.5);
+  transition: background 0.15s;
+}
+.win-btn:hover { background: #3b82f6; }
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <div id="game-title">♠ Klondike Solitaire</div>
+  <div class="mode-group">
+    <button class="mode-btn active" id="btn-d1" onclick="setDraw(1)">Draw 1</button>
+    <button class="mode-btn" id="btn-d3" onclick="setDraw(3)">Draw 3</button>
+  </div>
+  <div id="top-stats">
+    <span>⏱ <b id="el-time">0:00</b></span>
+    <span>🏆 <b id="el-score">0</b></span>
+    <span>↩ <b id="el-moves">0</b></span>
+  </div>
+</div>
+
+<div id="board"></div>
+<div id="drag-ghost"></div>
+
+<div id="toolbar">
+  <button class="tbtn" onclick="newGame()">
+    <span class="tbtn-icon">🃏</span>New Game
+  </button>
+  <button class="tbtn" id="btn-undo" onclick="undo()" disabled>
+    <span class="tbtn-icon">↩</span>Undo
+  </button>
+  <button class="tbtn" onclick="doHint()">
+    <span class="tbtn-icon">💡</span>Hint
+  </button>
+  <button class="tbtn" onclick="autoComplete()">
+    <span class="tbtn-icon">⚡</span>Auto
+  </button>
+</div>
+
+<div id="win-overlay">
+  <div id="win-title">🎉 You Win!</div>
+  <div id="win-stats"></div>
+  <button class="win-btn" onclick="newGame()">Play Again</button>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════
+//  CONSTANTS
+// ════════════════════════════════════════════════════
+const SUITS  = ['♠','♣','♥','♦'];
+const RED    = new Set(['♥','♦']);
+const RANKS  = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+const FACES  = new Set(['J','Q','K']);
+
+const CW = 88, CH = 128;
+const COL_W  = 98;   // column pitch
+const ROW1_Y = 16;   // top row y
+const TAB_Y  = 162;  // tableau start y
+const FD_OV  = 21;   // face-down overlap
+const FU_OV  = 34;   // face-up overlap
+
+// Standard pip positions [x%, y%, inverted?]
+const PIPS = {
+  '2':  [[50,23],[50,77,1]],
+  '3':  [[50,20],[50,50],[50,80,1]],
+  '4':  [[27,23],[73,23],[27,77,1],[73,77,1]],
+  '5':  [[27,23],[73,23],[50,50],[27,77,1],[73,77,1]],
+  '6':  [[27,22],[73,22],[27,50],[73,50],[27,78,1],[73,78,1]],
+  '7':  [[27,22],[73,22],[50,36],[27,52],[73,52],[27,78,1],[73,78,1]],
+  '8':  [[27,22],[73,22],[50,36],[27,52],[73,52],[50,64,1],[27,78,1],[73,78,1]],
+  '9':  [[27,18],[73,18],[27,39],[73,39],[50,50],[27,61,1],[73,61,1],[27,82,1],[73,82,1]],
+  '10': [[27,18],[73,18],[50,30],[27,44],[73,44],[27,56,1],[73,56,1],[50,70,1],[27,82,1],[73,82,1]]
+};
+
+// ════════════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════════════
+let G = {};
+let history = [];
+let selState = null;   // { pile, col, idx, cards }
+let hintSet  = null;   // Set of card references to highlight
+let timerID  = null;
+let elapsed  = 0;
+
+function rankVal(r)   { return RANKS.indexOf(r) + 1; }
+function isRed(s)     { return RED.has(s); }
+function suitIdx(s)   { return SUITS.indexOf(s); }
+
+// ════════════════════════════════════════════════════
+//  DECK / DEAL
+// ════════════════════════════════════════════════════
+function makeDeck() {
+  const d = [];
+  for (const s of SUITS) for (const r of RANKS) d.push({suit:s,rank:r,up:false});
+  return d;
+}
+
+function shuffle(a) {
+  for (let i = a.length-1; i > 0; i--) {
+    const j = Math.random()*(i+1)|0;
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+function newGame() {
+  clearInterval(timerID);
+  elapsed = 0;
+  history = [];
+  selState = null;
+  hintSet  = null;
+  G = {
+    drawMode : G.drawMode || 1,
+    stock    : [],
+    waste    : [],
+    found    : [[],[],[],[]],  // indexed by suitIdx
+    tab      : [[],[],[],[],[],[],[]],
+    score    : 0,
+    moves    : 0
+  };
+
+  const deck = shuffle(makeDeck());
+  let i = 0;
+  for (let c = 0; c < 7; c++) {
+    for (let r = 0; r <= c; r++) {
+      const card = deck[i++];
+      card.up = r === c;
+      G.tab[c].push(card);
+    }
+  }
+  while (i < 52) { deck[i].up = false; G.stock.push(deck[i++]); }
+
+  document.getElementById('win-overlay').classList.remove('show');
+  startTimer();
+  render();
+  syncUI();
+}
+
+function setDraw(n) {
+  G.drawMode = n;
+  document.getElementById('btn-d1').classList.toggle('active', n===1);
+  document.getElementById('btn-d3').classList.toggle('active', n===3);
+  newGame();
+}
+
+// ════════════════════════════════════════════════════
+//  TIMER
+// ════════════════════════════════════════════════════
+function startTimer() {
+  clearInterval(timerID);
+  elapsed = 0;
+  document.getElementById('el-time').textContent = '0:00';
+  timerID = setInterval(() => {
+    elapsed++;
+    const m = elapsed/60|0, s = elapsed%60;
+    document.getElementById('el-time').textContent = `${m}:${s.toString().padStart(2,'0')}`;
+  }, 1000);
+}
+
+function fmtTime() {
+  const m = elapsed/60|0, s = elapsed%60;
+  return `${m}:${s.toString().padStart(2,'0')}`;
+}
+
+// ════════════════════════════════════════════════════
+//  VALIDATION
+// ════════════════════════════════════════════════════
+function canStack(card, col) {
+  const pile = G.tab[col];
+  if (!pile.length) return card.rank === 'K';
+  const top = pile[pile.length-1];
+  return top.up && isRed(card.suit) !== isRed(top.suit) && rankVal(card.rank) === rankVal(top.rank)-1;
+}
+
+function canFound(card, fi) {
+  if (card.suit !== SUITS[fi]) return false;
+  const f = G.found[fi];
+  return f.length ? rankVal(card.rank) === rankVal(f[f.length-1].rank)+1 : card.rank === 'A';
+}
+
+function bestFoundIdx(card) {
+  for (let i=0; i<4; i++) if (canFound(card,i)) return i;
+  return -1;
+}
+
+// ════════════════════════════════════════════════════
+//  UNDO
+// ════════════════════════════════════════════════════
+function saveSnap() {
+  history.push(JSON.stringify({
+    stock:G.stock, waste:G.waste, found:G.found, tab:G.tab, score:G.score, moves:G.moves
+  }));
+  if (history.length > 60) history.shift();
+}
+
+function undo() {
+  if (!history.length) return;
+  const s = JSON.parse(history.pop());
+  G.stock=s.stock; G.waste=s.waste; G.found=s.found; G.tab=s.tab;
+  G.score=s.score; G.moves=s.moves;
+  selState=null; hintSet=null;
+  render(); syncUI();
+}
+
+// ════════════════════════════════════════════════════
+//  SCORE
+// ════════════════════════════════════════════════════
+function addPts(n) { G.score = Math.max(0, G.score+n); }
+
+// ════════════════════════════════════════════════════
+//  MOVES
+// ════════════════════════════════════════════════════
+function clickStock() {
+  hintSet = null;
+  saveSnap();
+  if (!G.stock.length) {
+    // cycle waste → stock
+    while (G.waste.length) {
+      const c = G.waste.pop();
+      c.up = false;
+      G.stock.push(c);
+    }
+    addPts(G.drawMode===1 ? -100 : -20);
+  } else {
+    const n = G.drawMode===3 ? Math.min(3, G.stock.length) : 1;
+    for (let i=0; i<n; i++) { const c=G.stock.pop(); c.up=true; G.waste.push(c); }
+  }
+  G.moves++;
+  selState = null;
+  render(); syncUI();
+}
+
+// Unified move: removes cards from source, adds to target, handles scoring
+function execMove(cards, fp, fc, fi, tp, tc) {
+  saveSnap();
+  hintSet = null;
+
+  // Remove from source
+  if (fp === 'waste')   { G.waste.pop(); }
+  else if (fp === 'tab')  { G.tab[fc].splice(fi); }
+  else if (fp === 'found'){ G.found[fc].pop(); }
+
+  // Add to target
+  if (tp === 'tab')   { G.tab[tc].push(...cards); }
+  else if (tp === 'found') { G.found[tc].push(cards[0]); }
+
+  // Flip revealed card
+  if (fp === 'tab') {
+    const src = G.tab[fc];
+    if (src.length && !src[src.length-1].up) {
+      src[src.length-1].up = true;
+      addPts(5);
+    }
+  }
+
+  // Points
+  if (fp==='waste'  && tp==='tab')   addPts(5);
+  if (fp==='waste'  && tp==='found') addPts(10);
+  if (fp==='tab'    && tp==='found') addPts(10);
+  if (fp==='found'  && tp==='tab')   addPts(-15);
+
+  G.moves++;
+  selState = null;
+  render(); syncUI(); checkWin();
+}
+
+function tryAutoFound(card, fp, fc, fi) {
+  // Must be the top card of its pile
+  if (fp==='tab' && fi !== G.tab[fc].length-1) return false;
+
+  // 1. Try foundation first
+  const dfi = bestFoundIdx(card);
+  if (dfi >= 0) {
+    execMove([card], fp, fc, fi, 'found', dfi);
+    return true;
+  }
+
+  // 2. Try tableau — prefer a column that would reveal a face-down card
+  const cards = fp==='tab' ? G.tab[fc].slice(fi) : [card];
+
+  // Score each candidate column: +1 if move reveals a face-down card below source
+  let bestCol = -1, bestScore = -1;
+  for (let tc=0; tc<7; tc++) {
+    if (fp==='tab' && tc===fc) continue;
+    if (!canStack(cards[0], tc)) continue;
+    let score = 0;
+    // Would this reveal a face-down card in the source column?
+    if (fp==='tab') {
+      const below = G.tab[fc][fi-1];
+      if (below && !below.up) score += 2;   // exposes a face-down card — high priority
+    }
+    // Prefer columns that already have cards (avoid moving sequences to empty columns
+    // unless necessary, so Kings aren't wasted on empty columns pointlessly)
+    if (G.tab[tc].length > 0) score += 1;
+    if (score > bestScore) { bestScore=score; bestCol=tc; }
+  }
+
+  if (bestCol >= 0) {
+    execMove(cards, fp, fc, fi, 'tab', bestCol);
+    return true;
+  }
+
+  return false;
+}
+
+// ════════════════════════════════════════════════════
+//  WIN CHECK
+// ════════════════════════════════════════════════════
+function checkWin() {
+  if (G.found.reduce((s,f)=>s+f.length,0) < 52) return;
+  clearInterval(timerID);
+  document.getElementById('win-stats').innerHTML =
+    `Score: <b>${G.score}</b> &nbsp;·&nbsp; Time: <b>${fmtTime()}</b> &nbsp;·&nbsp; Moves: <b>${G.moves}</b>`;
+  document.getElementById('win-overlay').classList.add('show');
+}
+
+// ════════════════════════════════════════════════════
+//  HINT
+// ════════════════════════════════════════════════════
+function doHint() {
+  hintSet = new Set();
+
+  // Waste → foundation or tableau
+  if (G.waste.length) {
+    const c = G.waste[G.waste.length-1];
+    if (bestFoundIdx(c) >= 0) { hintSet.add(c); render(); return; }
+    for (let tc=0; tc<7; tc++) if (canStack(c,tc)) { hintSet.add(c); render(); return; }
+  }
+
+  // Tableau top → foundation or tableau
+  for (let col=0; col<7; col++) {
+    const pile = G.tab[col];
+    if (!pile.length) continue;
+    const top = pile[pile.length-1];
+    if (!top.up) continue;
+    if (bestFoundIdx(top)>=0) { hintSet.add(top); render(); return; }
+    for (let tc=0; tc<7; tc++) {
+      if (tc===col) continue;
+      if (canStack(top,tc)) { hintSet.add(top); render(); return; }
+    }
+  }
+
+  // Tableau sequence moves
+  for (let col=0; col<7; col++) {
+    const pile = G.tab[col];
+    for (let ci=0; ci<pile.length; ci++) {
+      const c = pile[ci];
+      if (!c.up) continue;
+      for (let tc=0; tc<7; tc++) {
+        if (tc===col) continue;
+        if (canStack(c,tc)) { hintSet.add(c); render(); return; }
+      }
+    }
+  }
+
+  // Stock?
+  if (G.stock.length || G.waste.length) {
+    // Just flash stock area - no card to highlight
+  }
+  hintSet = null;
+  render();
+}
+
+// ════════════════════════════════════════════════════
+//  AUTO-COMPLETE
+// ════════════════════════════════════════════════════
+function autoComplete() {
+  let moved = true;
+  while (moved) {
+    moved = false;
+
+    // Waste top
+    if (G.waste.length) {
+      const c = G.waste[G.waste.length-1];
+      const fi = bestFoundIdx(c);
+      if (fi >= 0) {
+        G.waste.pop();
+        G.found[fi].push(c);
+        addPts(10); G.moves++;
+        moved = true; continue;
+      }
+    }
+
+    // Tableau tops
+    for (let col=0; col<7; col++) {
+      if (!G.tab[col].length) continue;
+      const c = G.tab[col][G.tab[col].length-1];
+      if (!c.up) continue;
+      const fi = bestFoundIdx(c);
+      if (fi >= 0) {
+        G.tab[col].pop();
+        const src = G.tab[col];
+        if (src.length && !src[src.length-1].up) { src[src.length-1].up=true; addPts(5); }
+        G.found[fi].push(c);
+        addPts(10); G.moves++;
+        moved = true; break;
+      }
+    }
+  }
+  selState=null; hintSet=null;
+  render(); syncUI(); checkWin();
+}
+
+// ════════════════════════════════════════════════════
+//  RENDERING
+// ════════════════════════════════════════════════════
+const boardEl = document.getElementById('board');
+const ghostEl = document.getElementById('drag-ghost');
+
+function cx(i) {
+  const w = window.innerWidth;
+  const total = 6*COL_W + CW;
+  const off = Math.max(10, (w-total)/2|0);
+  return off + i*COL_W;
+}
+
+function makeCard(card, x, y, z) {
+  const el = document.createElement('div');
+  el.className = 'card';
+  el.style.cssText = `left:${x}px;top:${y}px;z-index:${z}`;
+
+  if (!card.up) {
+    el.classList.add('card-back');
+    return el;
+  }
+
+  const color = isRed(card.suit) ? 'red' : 'black';
+  el.classList.add('card-face', color);
+
+  // Hint glow
+  if (hintSet && hintSet.has(card)) el.classList.add('card-hint');
+
+  // Corners
+  const tl = document.createElement('div');
+  tl.className = 'corner tl';
+  tl.innerHTML = `${card.rank}<br>${card.suit}`;
+
+  const br = document.createElement('div');
+  br.className = 'corner br';
+  br.innerHTML = `${card.rank}<br>${card.suit}`;
+
+  el.appendChild(tl);
+  el.appendChild(br);
+
+  if (FACES.has(card.rank)) {
+    // Face card art
+    const art = document.createElement('div');
+    art.className = 'face-art';
+    const ltr = document.createElement('div');
+    ltr.className = 'face-letter';
+    ltr.textContent = card.rank;
+    const sym = document.createElement('div');
+    sym.className = 'face-suit';
+    sym.textContent = card.suit;
+    art.appendChild(ltr);
+    art.appendChild(sym);
+    el.appendChild(art);
+  } else if (card.rank === 'A') {
+    const p = document.createElement('div');
+    p.className = 'pip-ace';
+    p.textContent = card.suit;
+    el.appendChild(p);
+  } else {
+    const layout = PIPS[card.rank];
+    if (layout) {
+      layout.forEach(([xp, yp, inv]) => {
+        const p = document.createElement('div');
+        p.className = 'pip' + (inv ? ' inv' : '');
+        p.style.left = xp + '%';
+        p.style.top  = yp + '%';
+        p.textContent = card.suit;
+        el.appendChild(p);
+      });
+    }
+  }
+
+  return el;
+}
+
+function makeSlot(cls, x, y, extra) {
+  const el = document.createElement('div');
+  el.className = 'slot ' + cls;
+  el.style.cssText = `left:${x}px;top:${y}px`;
+  if (extra) for (const [k,v] of Object.entries(extra)) el.setAttribute(k,v);
+  return el;
+}
+
+function render() {
+  boardEl.innerHTML = '';
+
+  // ── Stock ──────────────────────────────────────────────
+  const sx = cx(0), sy = ROW1_Y;
+  if (G.stock.length === 0) {
+    const sl = makeSlot('slot-stock-empty', sx, sy);
+    sl.addEventListener('click', clickStock);
+    boardEl.appendChild(sl);
+  } else {
+    const back = makeCard({up:false}, sx, sy, 5);
+    back.style.cursor = 'pointer';
+    const cnt = document.createElement('div');
+    cnt.style.cssText = 'position:absolute;bottom:5px;right:7px;font-size:0.6em;color:rgba(255,255,255,0.5);font-weight:700;pointer-events:none;';
+    cnt.textContent = G.stock.length;
+    back.appendChild(cnt);
+    back.addEventListener('click', clickStock);
+    boardEl.appendChild(back);
+  }
+
+  // ── Waste ──────────────────────────────────────────────
+  const wx = cx(1), wy = ROW1_Y;
+  boardEl.appendChild(makeSlot('', wx, wy));
+
+  if (G.waste.length) {
+    const showFrom = G.drawMode===3 ? Math.max(0, G.waste.length-3) : G.waste.length-1;
+    for (let i = showFrom; i < G.waste.length; i++) {
+      const card = G.waste[i];
+      const isTop = i === G.waste.length-1;
+      const xOff  = G.drawMode===3 ? (i-showFrom)*20 : 0;
+      const el = makeCard(card, wx+xOff, wy, 8+i);
+      if (isTop) {
+        if (selState && selState.pile==='waste') el.classList.add('card-sel');
+        el.addEventListener('mousedown', e => startDrag(e,'waste',0,i,[card]));
+        el.addEventListener('dblclick',  () => tryAutoFound(card,'waste',0,i));
+        el.addEventListener('click',     e => onCardClick(e,'waste',0,i,[card]));
+      }
+      boardEl.appendChild(el);
+    }
+  }
+
+  // ── Foundations ────────────────────────────────────────
+  for (let fi=0; fi<4; fi++) {
+    const fx = cx(3+fi), fy = ROW1_Y;
+    const isRed_ = RED.has(SUITS[fi]);
+    const sl = makeSlot('slot-foundation'+(isRed_?' red-f':''), fx, fy, {'data-suit':SUITS[fi]});
+    sl.addEventListener('click',    () => onSlotClick('found', fi));
+    sl.addEventListener('mouseup',  () => {/* handled via coords */});
+    boardEl.appendChild(sl);
+
+    const f = G.found[fi];
+    if (f.length) {
+      const card = f[f.length-1];
+      const el = makeCard(card, fx, fy, 12);
+      el.addEventListener('mousedown', e => startDrag(e,'found',fi,f.length-1,[card]));
+      boardEl.appendChild(el);
+    }
+  }
+
+  // ── Tableau ────────────────────────────────────────────
+  for (let col=0; col<7; col++) {
+    const tx = cx(col), ty = TAB_Y;
+    const pile = G.tab[col];
+    const sl = makeSlot(pile.length===0 ? 'slot-empty-k' : '', tx, ty);
+    sl.addEventListener('click', () => onSlotClick('tab', col));
+    boardEl.appendChild(sl);
+
+    let y = ty;
+    for (let ci=0; ci<pile.length; ci++) {
+      const card = pile[ci];
+      const isTop = ci === pile.length-1;
+      const el = makeCard(card, tx, y, 20+ci);
+
+      if (card.up) {
+        const isSel = selState && selState.pile==='tab' && selState.col===col && ci>=selState.idx;
+        if (isSel && ci===selState.idx) el.classList.add('card-sel');
+
+        el.addEventListener('mousedown', e => {
+          startDrag(e,'tab',col,ci,pile.slice(ci));
+        });
+        el.addEventListener('dblclick', () => {
+          if (isTop) tryAutoFound(card,'tab',col,ci);
+        });
+        el.addEventListener('click', e => {
+          onCardClick(e,'tab',col,ci,pile.slice(ci));
+        });
+      }
+
+      boardEl.appendChild(el);
+      y += card.up ? FU_OV : FD_OV;
+    }
+
+    // Stretch slot to cover full column
+    const slotH = Math.max(CH, y - ty + CH - (pile.length ? (pile[pile.length-1].up ? FU_OV : FD_OV) : 0));
+    sl.style.height = slotH + 'px';
+  }
+
+  syncUI();
+}
+
+// ════════════════════════════════════════════════════
+//  CLICK SELECTION
+// ════════════════════════════════════════════════════
+function onCardClick(e, pile, col, idx, cards) {
+  e.stopPropagation();
+  if (isDragging) return;
+  hintSet = null;
+
+  if (selState) {
+    // Attempt move onto this card's column
+    const target = pile==='tab' ? col : -1;
+    if (pile==='tab' && canStack(selState.cards[0], col)) {
+      execMove(selState.cards, selState.pile, selState.col, selState.idx, 'tab', col);
+    } else if (pile==='found') {
+      if (selState.cards.length===1 && canFound(selState.cards[0], col)) {
+        execMove(selState.cards, selState.pile, selState.col, selState.idx, 'found', col);
+      } else { selState=null; render(); }
+    } else {
+      // clicking own card: deselect or reselect deeper
+      if (selState.pile===pile && selState.col===col && selState.idx===idx) {
+        selState=null; render();
+      } else {
+        selState={pile,col,idx,cards};
+        render();
+      }
+    }
+  } else {
+    selState = {pile,col,idx,cards};
+    render();
+  }
+}
+
+function onSlotClick(pile, col) {
+  if (!selState) return;
+  hintSet = null;
+  if (pile==='tab') {
+    if (canStack(selState.cards[0], col)) {
+      execMove(selState.cards, selState.pile, selState.col, selState.idx, 'tab', col);
+    } else { selState=null; render(); }
+  } else if (pile==='found') {
+    if (selState.cards.length===1 && canFound(selState.cards[0], col)) {
+      execMove(selState.cards, selState.pile, selState.col, selState.idx, 'found', col);
+    } else { selState=null; render(); }
+  }
+}
+
+boardEl.addEventListener('click', () => {
+  if (selState) { selState=null; render(); }
+});
+
+// ════════════════════════════════════════════════════
+//  DRAG & DROP
+// ════════════════════════════════════════════════════
+let isDragging = false;
+let dragInfo   = null;
+
+function wasteTopX() {
+  const n = G.waste.length;
+  return cx(1) + (G.drawMode===3 ? Math.min(n-1,2)*20 : 0);
+}
+
+function startDrag(e, fp, fc, fi, cards) {
+  e.preventDefault();
+  e.stopPropagation();
+  selState = null;
+  hintSet  = null;
+
+  // Compute card's rendered position
+  let cardX, cardY;
+  const boardRect = boardEl.getBoundingClientRect();
+
+  if (fp === 'waste') {
+    cardX = wasteTopX();
+    cardY = ROW1_Y;
+  } else if (fp === 'found') {
+    cardX = cx(3+fc);
+    cardY = ROW1_Y;
+  } else {
+    cardX = cx(fc);
+    let y = TAB_Y;
+    for (let i=0; i<fi; i++) y += G.tab[fc][i].up ? FU_OV : FD_OV;
+    cardY = y;
+  }
+
+  const offX = e.clientX - (boardRect.left + cardX);
+  const offY = e.clientY - (boardRect.top  + cardY);
+
+  // Build ghost
+  ghostEl.innerHTML = '';
+  ghostEl.style.transform = `translate(${e.clientX-offX}px,${e.clientY-offY}px)`;
+  ghostEl.style.width = CW + 'px';
+  cards.forEach((card,i) => {
+    const el = makeCard(card, 0, i*FU_OV, i);
+    el.style.position = 'absolute';
+    ghostEl.appendChild(el);
+  });
+
+  isDragging = true;
+  dragInfo   = {fp, fc, fi, cards, offX, offY};
+
+  function onMove(ev) {
+    ghostEl.style.transform = `translate(${ev.clientX-offX}px,${ev.clientY-offY}px)`;
+  }
+
+  function onUp(ev) {
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup',   onUp);
+    ghostEl.innerHTML = '';
+    const di = dragInfo;
+    isDragging = false;
+    dragInfo   = null;
+    if (!di) return;
+
+    // Find drop target by coordinates
+    const bRect = boardEl.getBoundingClientRect();
+    const bx = ev.clientX - bRect.left;
+    const by = ev.clientY - bRect.top;
+
+    // ── Foundation drop (top row) ──────────────────────────
+    if (by >= ROW1_Y - 20 && by <= ROW1_Y + CH + 20) {
+      let bestFi = -1, bestDist = Infinity;
+      for (let ffi=0; ffi<4; ffi++) {
+        const fx = cx(3+ffi);
+        const dist = Math.abs(bx - (fx + CW/2));
+        if (dist < COL_W/2 && dist < bestDist) { bestDist=dist; bestFi=ffi; }
+      }
+      if (bestFi >= 0) {
+        if (di.cards.length===1 && canFound(di.cards[0], bestFi)) {
+          execMove(di.cards, di.fp, di.fc, di.fi, 'found', bestFi);
+        } else render();
+        return;
+      }
+    }
+
+    // ── Tableau drop ────────────────────────────────────────
+    if (by >= TAB_Y - 20) {
+      let bestCol = -1, bestDist = Infinity;
+      for (let tc=0; tc<7; tc++) {
+        const tx = cx(tc);
+        const dist = Math.abs(bx - (tx + CW/2));
+        if (dist < COL_W/2 && dist < bestDist) { bestDist=dist; bestCol=tc; }
+      }
+      if (bestCol >= 0) {
+        if (!(di.fp==='tab' && bestCol===di.fc) && canStack(di.cards[0], bestCol)) {
+          execMove(di.cards, di.fp, di.fc, di.fi, 'tab', bestCol);
+        } else render();
+        return;
+      }
+    }
+
+    render();
+  }
+
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup',   onUp);
+}
+
+// ════════════════════════════════════════════════════
+//  SYNC UI
+// ════════════════════════════════════════════════════
+function syncUI() {
+  document.getElementById('el-score').textContent = G.score;
+  document.getElementById('el-moves').textContent = G.moves;
+  document.getElementById('btn-undo').disabled = !history.length;
+}
+
+// ════════════════════════════════════════════════════
+//  KEYBOARD
+// ════════════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (e.key === 'z' && (e.ctrlKey||e.metaKey)) { undo(); return; }
+  if (e.key === 'n' && (e.ctrlKey||e.metaKey)) { e.preventDefault(); newGame(); return; }
+  if (e.key === 'Escape') { selState=null; hintSet=null; render(); }
+  if (e.key === 'h' || e.key === 'H') doHint();
+});
+
+// ════════════════════════════════════════════════════
+//  RESIZE
+// ════════════════════════════════════════════════════
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(render, 80);
+});
+
+// ════════════════════════════════════════════════════
+//  START
+// ════════════════════════════════════════════════════
+newGame();
+</script>
+</body>
+</html>
