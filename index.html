@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Klondike Solitaire</title>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -16,74 +17,77 @@ body {
   overflow-x: hidden;
   user-select: none;
   -webkit-user-select: none;
+  touch-action: none;
 }
 
-/* ─── Top Bar ─────────────────────────────────────────────── */
+/* ─── Top Bar ─────────────────────────────────────── */
 #topbar {
   height: 50px;
   background: linear-gradient(to bottom, #111827, #1f2937);
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 0 18px;
+  gap: 10px;
+  padding: 0 14px;
   color: #fff;
   box-shadow: 0 2px 8px rgba(0,0,0,0.55);
   position: relative;
   z-index: 100;
+  flex-wrap: nowrap;
+  overflow: hidden;
 }
-
 #game-title {
-  font-size: 1.15em;
+  font-size: 1.1em;
   font-weight: 600;
-  letter-spacing: 0.03em;
-  flex: 1;
   color: #e5e7eb;
+  white-space: nowrap;
+  margin-right: 4px;
 }
-
-.mode-group { display: flex; gap: 4px; }
-
+#deal-badge {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: 0.72em;
+  color: #9ca3af;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+#deal-badge:hover { background: rgba(255,255,255,0.2); color: #fff; }
+.topbar-sep { width: 1px; height: 22px; background: rgba(255,255,255,0.15); flex-shrink: 0; }
+.mode-group { display: flex; gap: 3px; flex-shrink: 0; }
 .mode-btn {
   background: rgba(255,255,255,0.1);
   border: 1px solid rgba(255,255,255,0.18);
   color: #d1d5db;
-  padding: 4px 15px;
+  padding: 3px 11px;
   border-radius: 20px;
   cursor: pointer;
-  font-size: 0.8em;
+  font-size: 0.75em;
   font-family: inherit;
   transition: all 0.15s;
+  white-space: nowrap;
 }
 .mode-btn:hover { background: rgba(255,255,255,0.2); color: #fff; }
-.mode-btn.active {
-  background: #2563eb;
-  border-color: #2563eb;
-  color: #fff;
-  box-shadow: 0 0 8px rgba(37,99,235,0.5);
-}
-
-.topbar-sep {
-  width: 1px;
-  height: 24px;
-  background: rgba(255,255,255,0.15);
-  margin: 0 4px;
-}
-
+.mode-btn.active { background: #2563eb; border-color: #2563eb; color: #fff; }
 #top-stats {
   display: flex;
-  gap: 18px;
-  font-size: 0.82em;
+  gap: 14px;
+  font-size: 0.78em;
   color: #9ca3af;
+  margin-left: auto;
+  flex-shrink: 0;
 }
 #top-stats b { color: #f3f4f6; font-weight: 600; }
 
-/* ─── Board ────────────────────────────────────────────────── */
+/* ─── Board ──────────────────────────────────────── */
 #board {
   position: relative;
   padding-bottom: 80px;
   min-height: calc(100vh - 50px - 58px);
 }
 
-/* ─── Slots ────────────────────────────────────────────────── */
+/* ─── Slots ──────────────────────────────────────── */
 .slot {
   position: absolute;
   width: 88px;
@@ -92,7 +96,6 @@ body {
   border-radius: 9px;
   background: rgba(0,0,0,0.13);
 }
-
 .slot-foundation { border-style: solid; border-color: rgba(255,255,255,0.15); }
 .slot-foundation::after {
   content: attr(data-suit);
@@ -105,7 +108,6 @@ body {
   pointer-events: none;
 }
 .slot-foundation.red-f::after { color: #fca5a5; }
-
 .slot-empty-k::after {
   content: 'K';
   position: absolute;
@@ -118,7 +120,6 @@ body {
   font-style: italic;
   pointer-events: none;
 }
-
 .slot-stock-empty { cursor: pointer; }
 .slot-stock-empty::after {
   content: '↺';
@@ -129,17 +130,13 @@ body {
   color: rgba(255,255,255,0.28);
   pointer-events: none;
 }
-
 .slot-solve {
   cursor: pointer;
   border-color: rgba(99,179,237,0.35);
   background: rgba(37,99,235,0.1);
   transition: background 0.15s, border-color 0.15s;
 }
-.slot-solve:hover {
-  background: rgba(37,99,235,0.22);
-  border-color: rgba(99,179,237,0.6);
-}
+.slot-solve:hover, .slot-solve:active { background: rgba(37,99,235,0.22); border-color: rgba(99,179,237,0.6); }
 .slot-solve::before {
   content: '🪄';
   position: absolute;
@@ -160,30 +157,23 @@ body {
   pointer-events: none;
 }
 
-/* ─── Cards ────────────────────────────────────────────────── */
+/* ─── Cards ──────────────────────────────────────── */
 .card {
   position: absolute;
   width: 88px;
   height: 128px;
   border-radius: 9px;
   cursor: pointer;
+  will-change: transform;
 }
-
-/* Card back */
 .card-back {
   background: #1e40af;
   background-image:
-    repeating-linear-gradient(45deg,
-      rgba(255,255,255,0.05) 0, rgba(255,255,255,0.05) 2px,
-      transparent 2px, transparent 12px),
-    repeating-linear-gradient(-45deg,
-      rgba(255,255,255,0.05) 0, rgba(255,255,255,0.05) 2px,
-      transparent 2px, transparent 12px);
+    repeating-linear-gradient(45deg, rgba(255,255,255,0.05) 0, rgba(255,255,255,0.05) 2px, transparent 2px, transparent 12px),
+    repeating-linear-gradient(-45deg, rgba(255,255,255,0.05) 0, rgba(255,255,255,0.05) 2px, transparent 2px, transparent 12px);
   border: 2px solid #1e3a8a;
   box-shadow: 0 2px 6px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.08);
 }
-
-/* Inner border detail on card back */
 .card-back::after {
   content: '';
   position: absolute;
@@ -191,18 +181,14 @@ body {
   border: 1px solid rgba(255,255,255,0.12);
   border-radius: 5px;
 }
-
-/* Card face */
 .card-face {
-  background: #ffffff;
+  background: #fff;
   border: 1px solid #c0c0c0;
   box-shadow: 0 2px 7px rgba(0,0,0,0.32);
   overflow: hidden;
 }
 .card-face.red  { color: #c0392b; }
 .card-face.black { color: #1a1a1a; }
-
-/* Corner rank + suit */
 .corner {
   position: absolute;
   font-size: 0.72em;
@@ -214,27 +200,22 @@ body {
 }
 .corner.tl { top: 4px; left: 5px; }
 .corner.br { bottom: 4px; right: 5px; transform: rotate(180deg); }
-
-/* Pips */
 .pip {
   position: absolute;
   font-size: 1.05em;
   line-height: 1;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%,-50%);
   pointer-events: none;
 }
-.pip.inv { transform: translate(-50%, -50%) rotate(180deg); }
-
+.pip.inv { transform: translate(-50%,-50%) rotate(180deg); }
 .pip-ace {
   position: absolute;
   top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%,-50%);
   font-size: 3.4em;
   line-height: 1;
   pointer-events: none;
 }
-
-/* Face cards (J/Q/K) */
 .face-art {
   position: absolute;
   top: 22px; left: 6px; right: 6px; bottom: 22px;
@@ -249,15 +230,8 @@ body {
   opacity: 0.8;
   pointer-events: none;
 }
-.face-letter {
-  font-size: 2.9em;
-  font-family: Georgia, 'Times New Roman', serif;
-  font-weight: 700;
-  line-height: 1;
-}
-.face-suit { font-size: 1.1em; }
-
-/* Selection: blue bar at top (MS style) */
+.face-letter { font-size: 2.9em; font-family: Georgia, serif; font-weight: 700; line-height: 1; }
+.face-suit   { font-size: 1.1em; }
 .card-sel::before {
   content: '';
   position: absolute;
@@ -268,13 +242,23 @@ body {
   z-index: 1;
   pointer-events: none;
 }
-
-/* Hint: gold outline */
 .card-hint {
   box-shadow: 0 0 0 3px #fbbf24, 0 2px 7px rgba(0,0,0,0.32) !important;
 }
+.slot-hint {
+  border: 2px solid #fbbf24 !important;
+  background: rgba(251,191,36,0.12) !important;
+}
+.card-hint-dst {
+  box-shadow: 0 0 0 3px #fbbf24, 0 2px 7px rgba(0,0,0,0.32) !important;
+  opacity: 0.85;
+}
+/* FLIP animation class */
+.card-anim {
+  transition: transform 0.2s cubic-bezier(0.25,0.46,0.45,0.94);
+}
 
-/* Drag ghost */
+/* ─── Drag ghost ──────────────────────────────────── */
 #drag-ghost {
   position: fixed;
   top: 0; left: 0;
@@ -283,7 +267,7 @@ body {
 }
 #drag-ghost .card { position: absolute; }
 
-/* ─── Toolbar ───────────────────────────────────────────────── */
+/* ─── Toolbar ─────────────────────────────────────── */
 #toolbar {
   position: fixed;
   bottom: 0; left: 0; right: 0;
@@ -292,11 +276,10 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 2px;
   box-shadow: 0 -2px 12px rgba(0,0,0,0.6);
   z-index: 200;
 }
-
 .tbtn {
   display: flex;
   flex-direction: column;
@@ -306,23 +289,23 @@ body {
   border: none;
   color: #9ca3af;
   cursor: pointer;
-  padding: 5px 18px;
+  padding: 5px 12px;
   border-radius: 7px;
-  font-size: 0.68em;
+  font-size: 0.65em;
   font-family: inherit;
   transition: all 0.15s;
-  min-width: 64px;
+  min-width: 54px;
 }
-.tbtn:hover:not(:disabled) { background: rgba(255,255,255,0.08); color: #e5e7eb; }
+.tbtn:hover:not(:disabled), .tbtn:active:not(:disabled) { background: rgba(255,255,255,0.08); color: #e5e7eb; }
 .tbtn:disabled { opacity: 0.35; cursor: default; }
-.tbtn-icon { font-size: 1.55em; line-height: 1; }
+.tbtn-icon { font-size: 1.5em; line-height: 1; }
 
-/* ─── Win Overlay ───────────────────────────────────────────── */
+/* ─── Win Overlay ─────────────────────────────────── */
 #win-overlay {
   display: none;
   position: fixed;
   inset: 0;
-  background: radial-gradient(ellipse at center, rgba(15,40,100,0.92) 0%, rgba(0,0,0,0.75) 100%);
+  background: radial-gradient(ellipse at center, rgba(15,40,100,0.88) 0%, rgba(0,0,0,0.7) 100%);
   z-index: 9999;
   align-items: center;
   justify-content: center;
@@ -332,20 +315,20 @@ body {
 }
 #win-overlay.show { display: flex; }
 #win-title {
-  font-size: 3.8em;
+  font-size: 3.5em;
   font-weight: 700;
   text-shadow: 0 0 40px rgba(250,204,21,0.7), 0 2px 8px rgba(0,0,0,0.8);
   margin-bottom: 12px;
   animation: pop 0.4s ease-out;
 }
-@keyframes pop { from { transform: scale(0.7); opacity:0; } to { transform: scale(1); opacity:1; } }
-#win-stats { font-size: 1em; color: #93c5fd; margin-bottom: 28px; line-height: 1.8; }
+@keyframes pop { from { transform: scale(0.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+#win-stats { font-size: 0.95em; color: #93c5fd; margin-bottom: 24px; line-height: 2; }
 .win-btn {
   background: #2563eb;
   color: #fff;
   border: none;
   border-radius: 30px;
-  padding: 12px 36px;
+  padding: 11px 32px;
   font-size: 1em;
   font-family: inherit;
   cursor: pointer;
@@ -354,7 +337,7 @@ body {
 }
 .win-btn:hover { background: #3b82f6; }
 
-/* ─── Stuck Banner ──────────────────────────────────────────── */
+/* ─── Stuck Banner ────────────────────────────────── */
 #stuck-banner {
   position: fixed;
   bottom: 68px;
@@ -363,12 +346,12 @@ body {
   background: #1e293b;
   border: 1px solid #334155;
   border-radius: 12px;
-  padding: 12px 20px;
+  padding: 11px 18px;
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   color: #e2e8f0;
-  font-size: 0.88em;
+  font-size: 0.85em;
   box-shadow: 0 4px 20px rgba(0,0,0,0.5);
   opacity: 0;
   pointer-events: none;
@@ -376,31 +359,104 @@ body {
   z-index: 500;
   white-space: nowrap;
 }
-#stuck-banner.show {
-  opacity: 1;
-  transform: translateX(-50%) translateY(0);
-  pointer-events: auto;
-}
-#stuck-banner .stuck-icon { font-size: 1.3em; }
+#stuck-banner.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
 .stuck-btn {
   background: #2563eb;
   color: #fff;
   border: none;
   border-radius: 6px;
-  padding: 5px 12px;
+  padding: 4px 11px;
   font-size: 0.85em;
   font-family: inherit;
   cursor: pointer;
 }
-.stuck-btn:hover { background: #3b82f6; }
 .stuck-btn.sec { background: #334155; }
-.stuck-btn.sec:hover { background: #475569; }
+.stuck-btn:hover { filter: brightness(1.15); }
+
+/* ─── Stats Modal ─────────────────────────────────── */
+#stats-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  z-index: 8000;
+  align-items: center;
+  justify-content: center;
+}
+#stats-overlay.show { display: flex; }
+#stats-modal {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 16px;
+  padding: 28px 32px;
+  color: #e2e8f0;
+  min-width: 300px;
+  text-align: center;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.7);
+}
+#stats-modal h2 { font-size: 1.3em; margin-bottom: 22px; color: #f1f5f9; }
+.stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 24px;
+  margin-bottom: 24px;
+}
+.stat-cell { text-align: center; }
+.stat-val { font-size: 2em; font-weight: 700; color: #60a5fa; line-height: 1; }
+.stat-label { font-size: 0.72em; color: #94a3b8; margin-top: 3px; text-transform: uppercase; letter-spacing: 0.05em; }
+.stat-divider { grid-column: 1/-1; border: none; border-top: 1px solid #334155; margin: 2px 0; }
+#stats-modal .close-btn {
+  background: #334155;
+  color: #e2e8f0;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 28px;
+  font-size: 0.9em;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+#stats-modal .close-btn:hover { background: #475569; }
+#reset-stats-btn {
+  background: none;
+  border: none;
+  color: #64748b;
+  font-size: 0.72em;
+  cursor: pointer;
+  margin-top: 10px;
+  display: block;
+  width: 100%;
+  font-family: inherit;
+}
+#reset-stats-btn:hover { color: #94a3b8; }
+
+/* ─── Bouncing Win Cards ─────────────────────────── */
+.bouncer {
+  position: fixed;
+  width: 62px;
+  height: 88px;
+  border-radius: 6px;
+  z-index: 9990;
+  pointer-events: none;
+  background: #fff;
+  border: 1px solid #ccc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6em;
+  box-shadow: 1px 2px 6px rgba(0,0,0,0.3);
+  will-change: transform;
+}
+.bouncer.red { color: #c0392b; }
+.bouncer.black { color: #111; }
 </style>
 </head>
 <body>
 
 <div id="topbar">
-  <div id="game-title">♠ Klondike Solitaire</div>
+  <div id="game-title">♠ Klondike</div>
+  <div id="deal-badge" onclick="promptDeal()" title="Click to replay a specific deal">Deal #<span id="el-deal">—</span></div>
+  <div class="topbar-sep"></div>
   <div class="mode-group">
     <button class="mode-btn active" id="btn-easy"   onclick="setDifficulty('easy')">Easy</button>
     <button class="mode-btn"        id="btn-medium" onclick="setDifficulty('medium')">Medium</button>
@@ -423,18 +479,12 @@ body {
 <div id="drag-ghost"></div>
 
 <div id="toolbar">
-  <button class="tbtn" onclick="newGame()">
-    <span class="tbtn-icon">🃏</span>New Game
-  </button>
-  <button class="tbtn" id="btn-undo" onclick="undo()" disabled>
-    <span class="tbtn-icon">↩</span>Undo
-  </button>
-  <button class="tbtn" onclick="doHint()">
-    <span class="tbtn-icon">💡</span>Hint
-  </button>
-  <button class="tbtn" onclick="autoComplete()">
-    <span class="tbtn-icon">⚡</span>Auto
-  </button>
+  <button class="tbtn" onclick="newGame()"><span class="tbtn-icon">🃏</span>New Game</button>
+  <button class="tbtn" id="btn-undo" onclick="undo()" disabled><span class="tbtn-icon">↩</span>Undo</button>
+  <button class="tbtn" onclick="doHint()"><span class="tbtn-icon">💡</span>Hint</button>
+  <button class="tbtn" onclick="autoComplete()"><span class="tbtn-icon">⚡</span>Auto</button>
+  <button class="tbtn" onclick="showStats()"><span class="tbtn-icon">📊</span>Stats</button>
+  <button class="tbtn" id="btn-fs" onclick="toggleFullscreen()"><span class="tbtn-icon">⛶</span>Fullscreen</button>
 </div>
 
 <div id="win-overlay">
@@ -444,29 +494,45 @@ body {
 </div>
 
 <div id="stuck-banner">
-  <span class="stuck-icon">🚫</span>
-  <span>No moves left</span>
+  <span>🚫 No moves left</span>
   <button class="stuck-btn sec" onclick="undo()">Undo</button>
   <button class="stuck-btn" onclick="newGame()">New Game</button>
+</div>
+
+<div id="stats-overlay" onclick="closeStats(event)">
+  <div id="stats-modal">
+    <h2>📊 Statistics</h2>
+    <div class="stat-grid">
+      <div class="stat-cell"><div class="stat-val" id="st-played">0</div><div class="stat-label">Played</div></div>
+      <div class="stat-cell"><div class="stat-val" id="st-winpct">0%</div><div class="stat-label">Win Rate</div></div>
+      <hr class="stat-divider">
+      <div class="stat-cell"><div class="stat-val" id="st-streak">0</div><div class="stat-label">Streak</div></div>
+      <div class="stat-cell"><div class="stat-val" id="st-best-streak">0</div><div class="stat-label">Best Streak</div></div>
+      <hr class="stat-divider">
+      <div class="stat-cell"><div class="stat-val" id="st-best-score">—</div><div class="stat-label">Best Score</div></div>
+      <div class="stat-cell"><div class="stat-val" id="st-best-time">—</div><div class="stat-label">Best Time</div></div>
+    </div>
+    <button class="close-btn" onclick="closeStats()">Close</button>
+    <button id="reset-stats-btn" onclick="resetStats()">Reset statistics</button>
+  </div>
 </div>
 
 <script>
 // ════════════════════════════════════════════════════
 //  CONSTANTS
 // ════════════════════════════════════════════════════
-const SUITS  = ['♠','♣','♥','♦'];
-const RED    = new Set(['♥','♦']);
-const RANKS  = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
-const FACES  = new Set(['J','Q','K']);
+const SUITS = ['♠','♣','♥','♦'];
+const RED   = new Set(['♥','♦']);
+const RANKS = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+const FACES = new Set(['J','Q','K']);
 
-const CW = 88, CH = 128;
-const COL_W  = 98;   // column pitch
-const ROW1_Y = 16;   // top row y
-const TAB_Y  = 162;  // tableau start y
-const FD_OV  = 21;   // face-down overlap
-const FU_OV  = 34;   // face-up overlap
+const CW    = 88, CH = 128;
+const COL_W = 98;
+const ROW1_Y = 16;
+const TAB_Y  = 162;
+const FD_OV  = 21;
+const FU_OV  = 34;
 
-// Standard pip positions [x%, y%, inverted?]
 const PIPS = {
   '2':  [[50,23],[50,77,1]],
   '3':  [[50,20],[50,50],[50,80,1]],
@@ -480,76 +546,284 @@ const PIPS = {
 };
 
 // ════════════════════════════════════════════════════
+//  SEEDED PRNG  (Mulberry32)
+//  Produces reproducible shuffles from a numeric seed.
+// ════════════════════════════════════════════════════
+function mulberry32(seed) {
+  return function() {
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+function seededShuffle(arr, rng) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// ════════════════════════════════════════════════════
 //  STATE
 // ════════════════════════════════════════════════════
-let G = {};
+let G        = {};
 let history  = [];
 let selState = null;
-let hintSet  = null;
+let hintSet  = null; // Set of card refs to highlight (source)
+let hintDst   = null; // { pile, col } destination slot to highlight
+let hintStock = false; // true = hint is "draw from stock"
 let timerID  = null;
 let elapsed  = 0;
-let difficulty = 'easy';   // 'easy' | 'medium' | 'hard' | 'expert'
+let dealNum  = 0;
+let difficulty = 'easy';
+let lastTap    = { time: 0, cid: '' };  // for touch double-tap
+let stockPasses = 0; // times waste has been recycled back to stock
 
-function rankVal(r)   { return RANKS.indexOf(r) + 1; }
-function isRed(s)     { return RED.has(s); }
-function suitIdx(s)   { return SUITS.indexOf(s); }
+function rankVal(r) { return RANKS.indexOf(r) + 1; }
+function isRed(s)   { return RED.has(s); }
+function cardId(c)  { return c.rank + c.suit; }
 
 // ════════════════════════════════════════════════════
-//  DEAL DIFFICULTY SCORING
-//
-//  Scores a freshly dealt state by measuring how hard
-//  it is to access the four Aces.
-//
-//  Each Ace contributes:
-//   - 0 pts  : already face-up and on top (instantly playable)
-//   - +1/card : each face-up card sitting on top (easy to clear)
-//   - +3/card : each face-down card sitting on top (must be uncovered first)
-//   - +6      : Ace is in the stock (unknown timing)
-//   - +depth  : extra penalty for how deep in the stock it sits
-//
-//  Lower total = easier deal.
-//  Typical range for a random deal: ~8 – 50+
+//  STATISTICS  (localStorage)
 // ════════════════════════════════════════════════════
-function scoreDeal(tab, stock) {
+const STATS_KEY = 'klondike-stats-v1';
+
+function defaultStats() {
+  return { played: 0, won: 0, streak: 0, bestStreak: 0, bestScore: 0, bestTime: 0 };
+}
+function loadStats() {
+  try { return { ...defaultStats(), ...JSON.parse(localStorage.getItem(STATS_KEY)) }; }
+  catch { return defaultStats(); }
+}
+function saveStats(st) {
+  try { localStorage.setItem(STATS_KEY, JSON.stringify(st)); } catch {}
+}
+function recordWin(score, secs) {
+  const st = loadStats();
+  st.played++;
+  st.won++;
+  st.streak++;
+  st.bestStreak = Math.max(st.bestStreak, st.streak);
+  st.bestScore  = Math.max(st.bestScore, score);
+  st.bestTime   = st.bestTime ? Math.min(st.bestTime, secs) : secs;
+  saveStats(st);
+}
+function recordLoss() {
+  // Called on new game (treating previous unfinished game as a loss if moves > 0)
+  if (G.moves > 0 && G.found.reduce((s,f) => s+f.length, 0) < 52) {
+    const st = loadStats();
+    st.played++;
+    st.streak = 0;
+    saveStats(st);
+  }
+}
+function resetStats() {
+  if (!confirm('Reset all statistics?')) return;
+  saveStats(defaultStats());
+  populateStats();
+}
+function showStats() {
+  populateStats();
+  document.getElementById('stats-overlay').classList.add('show');
+}
+function closeStats(e) {
+  if (e && e.target !== document.getElementById('stats-overlay')) return;
+  document.getElementById('stats-overlay').classList.remove('show');
+}
+function populateStats() {
+  const st = loadStats();
+  const pct = st.played ? Math.round(100 * st.won / st.played) + '%' : '0%';
+  const fmtT = s => s ? `${Math.floor(s/60)}:${(s%60).toString().padStart(2,'0')}` : '—';
+  document.getElementById('st-played').textContent     = st.played;
+  document.getElementById('st-winpct').textContent     = pct;
+  document.getElementById('st-streak').textContent     = st.streak;
+  document.getElementById('st-best-streak').textContent= st.bestStreak;
+  document.getElementById('st-best-score').textContent = st.bestScore || '—';
+  document.getElementById('st-best-time').textContent  = fmtT(st.bestTime);
+}
+
+// ════════════════════════════════════════════════════
+//  RESUME GAME  (localStorage)
+// ════════════════════════════════════════════════════
+const SAVE_KEY = 'klondike-save-v1';
+
+function persistState() {
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify({
+      G, elapsed, dealNum, difficulty, stockPasses
+    }));
+  } catch {}
+}
+function clearSave() {
+  try { localStorage.removeItem(SAVE_KEY); } catch {}
+}
+function tryResume() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return false;
+    const { G: sG, elapsed: sE, dealNum: sD, difficulty: sV, stockPasses: sP } = JSON.parse(raw);
+    if (!sG || !sG.tab) return false;
+    G = sG;
+    elapsed = sE || 0;
+    dealNum = sD || 0;
+    difficulty = sV || 'easy';
+    stockPasses = sP || 0;
+    return true;
+  } catch { return false; }
+}
+
+// ════════════════════════════════════════════════════
+//  DECK / DEAL
+// ════════════════════════════════════════════════════
+function makeDeck() {
+  const d = [];
+  for (const s of SUITS) for (const r of RANKS) d.push({ suit: s, rank: r, up: false });
+  return d;
+}
+
+function dealFromSeed(seed) {
+  const rng  = mulberry32(seed);
+  const deck = seededShuffle(makeDeck(), rng);
+  const tab  = [[], [], [], [], [], [], []];
+  let i = 0;
+  for (let c = 0; c < 7; c++) {
+    for (let r = 0; r <= c; r++) {
+      const card = deck[i++];
+      card.up = (r === c);
+      tab[c].push(card);
+    }
+  }
+  const stock = [];
+  while (i < 52) { deck[i].up = false; stock.push(deck[i++]); }
+  return { tab, stock };
+}
+
+// ── Difficulty scoring ──────────────────────────────
+// Measures how hard it is to access all 4 Aces.
+// +1 per face-up card blocking an Ace in tableau
+// +3 per face-down card blocking an Ace in tableau
+// +6 + depth for each Ace buried in the stock
+function aceScore(tab, stock) {
   let score = 0;
-
   for (const suit of SUITS) {
     let found = false;
-
-    // Search tableau columns
     for (let col = 0; col < 7 && !found; col++) {
       const pile = tab[col];
       for (let i = 0; i < pile.length; i++) {
         if (pile[i].suit !== suit || pile[i].rank !== 'A') continue;
         found = true;
-        // Count cards on top of the Ace (indices i+1 … end)
-        for (let j = i + 1; j < pile.length; j++) {
-          score += pile[j].up ? 1 : 3;
-        }
+        for (let j = i + 1; j < pile.length; j++) score += pile[j].up ? 1 : 3;
         break;
       }
     }
-
-    // Ace is in the stock
     if (!found) {
       const idx = stock.findIndex(c => c.suit === suit && c.rank === 'A');
-      if (idx >= 0) {
-        const depthFromTop = stock.length - 1 - idx; // 0 = next to flip
-        score += 6 + depthFromTop;
-      }
+      if (idx >= 0) score += 6 + (stock.length - 1 - idx);
     }
   }
-
   return score;
 }
 
-// Score ranges tuned so each bucket is reachable in < 50 random tries on average.
-// Expert bypasses scoring entirely (raw random deal, potentially unwinnable).
-const DIFF_RANGES = {
-  easy   : [0,  18],
-  medium : [18, 32],
-  hard   : [32, Infinity],
-};
+// Count immediate legal moves in the starting tableau (more = easier).
+function initialMoves(tab) {
+  let moves = 0;
+  const topCards = tab.map(pile => {
+    for (let i = pile.length - 1; i >= 0; i--) if (pile[i].up) return pile[i];
+    return null;
+  });
+  for (let col = 0; col < 7; col++) {
+    const top = topCards[col];
+    if (!top) continue;
+    for (let tc = 0; tc < 7; tc++) {
+      if (tc === col) continue;
+      const dest = topCards[tc];
+      if (!dest && top.rank === 'K') { moves++; break; }
+      if (dest && RED.has(top.suit) !== RED.has(dest.suit) && rankVal(top.rank) === rankVal(dest.rank) - 1) moves++;
+    }
+  }
+  return moves;
+}
+
+// Combined score: lower = easier.
+// Ace score is primary; subtract initial moves so deals with more opening
+// plays rank as easier within the same Ace-score bucket.
+function scoreDeal(tab, stock) {
+  return aceScore(tab, stock) * 10 - initialMoves(tab);
+}
+
+// Easy  [0, 80]:   Aces mostly in tableau with few blockers, several opening moves
+// Medium [80,200]: Some Aces buried or in shallow stock
+// Hard  [200, ∞]:  Aces buried deep, few opening moves
+const DIFF_RANGES = { easy: [0, 80], medium: [80, 200], hard: [200, Infinity] };
+
+function findDeal(diff) {
+  // Expert: any random seed
+  if (diff === 'expert') {
+    const seed = Math.floor(Math.random() * 1_000_000) + 1;
+    return { seed, ...dealFromSeed(seed) };
+  }
+  const range = DIFF_RANGES[diff];
+  let best = null, bestScore = Infinity, bestSeed = 0;
+  for (let attempt = 0; attempt < 300; attempt++) {
+    const seed = Math.floor(Math.random() * 1_000_000) + 1;
+    const deal = dealFromSeed(seed);
+    const s = scoreDeal(deal.tab, deal.stock);
+    if (s >= range[0] && s < range[1]) {
+      // For easy, keep looking to find the lowest-scoring deal
+      if (diff === 'easy') {
+        if (s < bestScore) { bestScore = s; best = deal; bestSeed = seed; }
+        if (attempt >= 50 && bestScore < 20) break; // Good enough — stop early
+      } else {
+        return { seed, ...deal };
+      }
+    } else {
+      const dist = s < range[0] ? range[0] - s : s - range[1];
+      if (dist < Math.abs(bestScore - range[0])) { bestScore = s; best = deal; bestSeed = seed; }
+    }
+  }
+  return { seed: bestSeed, ...best };
+}
+
+// ════════════════════════════════════════════════════
+//  GAME INIT
+// ════════════════════════════════════════════════════
+function newGame(specificSeed) {
+  recordLoss();
+  clearInterval(timerID);
+  elapsed      = 0;
+  history      = [];
+  selState     = null;
+  hintSet      = null;
+  stockPasses  = 0;
+
+  let tab, stock, seed;
+  if (specificSeed) {
+    seed = specificSeed;
+    ({ tab, stock } = dealFromSeed(seed));
+  } else {
+    ({ seed, tab, stock } = findDeal(difficulty));
+  }
+  dealNum = seed;
+
+  G = {
+    drawMode: G.drawMode || 1,
+    stock, tab,
+    waste: [], found: [[], [], [], []],
+    score: 0, moves: 0
+  };
+
+  document.getElementById('el-deal').textContent = dealNum;
+  document.getElementById('win-overlay').classList.remove('show');
+  document.getElementById('stuck-banner').classList.remove('show');
+  clearBouncers();
+  startTimer();
+  render();
+  syncUI();
+  persistState();
+}
 
 function setDifficulty(d) {
   difficulty = d;
@@ -559,91 +833,19 @@ function setDifficulty(d) {
   newGame();
 }
 
-// ════════════════════════════════════════════════════
-//  DECK / DEAL
-// ════════════════════════════════════════════════════
-function makeDeck() {
-  const d = [];
-  for (const s of SUITS) for (const r of RANKS) d.push({suit:s,rank:r,up:false});
-  return d;
-}
-
-function shuffle(a) {
-  for (let i = a.length-1; i > 0; i--) {
-    const j = Math.random()*(i+1)|0;
-    [a[i],a[j]] = [a[j],a[i]];
-  }
-  return a;
-}
-
-function dealCards() {
-  // Returns { tab, stock } for a fresh shuffle
-  const deck = shuffle(makeDeck());
-  const tab = [[],[],[],[],[],[],[]];
-  let i = 0;
-  for (let c = 0; c < 7; c++) {
-    for (let r = 0; r <= c; r++) {
-      const card = deck[i++];
-      card.up = r === c;
-      tab[c].push(card);
-    }
-  }
-  const stock = [];
-  while (i < 52) { deck[i].up = false; stock.push(deck[i++]); }
-  return { tab, stock };
-}
-
-function newGame() {
-  clearInterval(timerID);
-  elapsed = 0;
-  history  = [];
-  selState = null;
-  hintSet  = null;
-
-  // ── Find a deal that matches the target difficulty ──
-  // Expert mode skips scoring and uses the first random deal.
-  // For other modes we try up to 100 shuffles to land in range.
-  let tab, stock;
-  const range = DIFF_RANGES[difficulty];
-
-  if (difficulty === 'expert' || !range) {
-    ({ tab, stock } = dealCards());
-  } else {
-    let best = null, bestScore = Infinity;
-    for (let attempt = 0; attempt < 100; attempt++) {
-      const deal = dealCards();
-      const s = scoreDeal(deal.tab, deal.stock);
-      // Perfect hit — use immediately
-      if (s >= range[0] && s < range[1]) { tab = deal.tab; stock = deal.stock; break; }
-      // Track closest match as fallback
-      const dist = s < range[0] ? range[0] - s : s - range[1];
-      if (dist < bestScore) { bestScore = dist; best = deal; }
-    }
-    // Use fallback if no perfect match found
-    if (!tab) { tab = best.tab; stock = best.stock; }
-  }
-
-  G = {
-    drawMode : G.drawMode || 1,
-    stock, tab,
-    waste : [],
-    found : [[],[],[],[]],
-    score : 0,
-    moves : 0
-  };
-
-  document.getElementById('win-overlay').classList.remove('show');
-  document.getElementById('stuck-banner').classList.remove('show');
-  startTimer();
-  render();
-  syncUI();
-}
-
 function setDraw(n) {
   G.drawMode = n;
-  document.getElementById('btn-d1').classList.toggle('active', n===1);
-  document.getElementById('btn-d3').classList.toggle('active', n===3);
+  document.getElementById('btn-d1').classList.toggle('active', n === 1);
+  document.getElementById('btn-d3').classList.toggle('active', n === 3);
   newGame();
+}
+
+function promptDeal() {
+  const input = prompt('Enter a deal number (1–1,000,000):');
+  if (!input) return;
+  const n = parseInt(input, 10);
+  if (!n || n < 1 || n > 1_000_000) { alert('Please enter a number between 1 and 1,000,000.'); return; }
+  newGame(n);
 }
 
 // ════════════════════════════════════════════════════
@@ -655,14 +857,14 @@ function startTimer() {
   document.getElementById('el-time').textContent = '0:00';
   timerID = setInterval(() => {
     elapsed++;
-    const m = elapsed/60|0, s = elapsed%60;
-    document.getElementById('el-time').textContent = `${m}:${s.toString().padStart(2,'0')}`;
+    const m = elapsed / 60 | 0, s = elapsed % 60;
+    document.getElementById('el-time').textContent = `${m}:${s.toString().padStart(2, '0')}`;
+    if (elapsed % 5 === 0) persistState(); // save every 5s
   }, 1000);
 }
-
-function fmtTime() {
-  const m = elapsed/60|0, s = elapsed%60;
-  return `${m}:${s.toString().padStart(2,'0')}`;
+function fmtTime(s) {
+  const m = s / 60 | 0;
+  return `${m}:${(s % 60).toString().padStart(2, '0')}`;
 }
 
 // ════════════════════════════════════════════════════
@@ -671,18 +873,16 @@ function fmtTime() {
 function canStack(card, col) {
   const pile = G.tab[col];
   if (!pile.length) return card.rank === 'K';
-  const top = pile[pile.length-1];
-  return top.up && isRed(card.suit) !== isRed(top.suit) && rankVal(card.rank) === rankVal(top.rank)-1;
+  const top = pile[pile.length - 1];
+  return top.up && isRed(card.suit) !== isRed(top.suit) && rankVal(card.rank) === rankVal(top.rank) - 1;
 }
-
 function canFound(card, fi) {
   if (card.suit !== SUITS[fi]) return false;
   const f = G.found[fi];
-  return f.length ? rankVal(card.rank) === rankVal(f[f.length-1].rank)+1 : card.rank === 'A';
+  return f.length ? rankVal(card.rank) === rankVal(f[f.length - 1].rank) + 1 : card.rank === 'A';
 }
-
 function bestFoundIdx(card) {
-  for (let i=0; i<4; i++) if (canFound(card,i)) return i;
+  for (let i = 0; i < 4; i++) if (canFound(card, i)) return i;
   return -1;
 }
 
@@ -691,177 +891,93 @@ function bestFoundIdx(card) {
 // ════════════════════════════════════════════════════
 function saveSnap() {
   history.push(JSON.stringify({
-    stock:G.stock, waste:G.waste, found:G.found, tab:G.tab, score:G.score, moves:G.moves
+    stock: G.stock, waste: G.waste, found: G.found, tab: G.tab,
+    score: G.score, moves: G.moves
   }));
   if (history.length > 60) history.shift();
 }
-
 function undo() {
   if (!history.length) return;
   const s = JSON.parse(history.pop());
-  G.stock=s.stock; G.waste=s.waste; G.found=s.found; G.tab=s.tab;
-  G.score=s.score; G.moves=s.moves;
-  selState=null; hintSet=null;
-  render(); syncUI();
+  G.stock = s.stock; G.waste = s.waste; G.found = s.found; G.tab = s.tab;
+  G.score = s.score; G.moves = s.moves;
+  selState = null; hintSet = null; hintDst = null; hintStock = false;
+  render(); syncUI(); persistState();
 }
 
 // ════════════════════════════════════════════════════
 //  SCORE
 // ════════════════════════════════════════════════════
-function addPts(n) { G.score = Math.max(0, G.score+n); }
+function addPts(n) { G.score = Math.max(0, G.score + n); }
 
 // ════════════════════════════════════════════════════
 //  MOVES
 // ════════════════════════════════════════════════════
 function clickStock() {
-  hintSet = null;
+  hintSet = null; hintDst = null; hintStock = false;
   saveSnap();
   if (!G.stock.length) {
-    // cycle waste → stock
-    while (G.waste.length) {
-      const c = G.waste.pop();
-      c.up = false;
-      G.stock.push(c);
-    }
-    addPts(G.drawMode===1 ? -100 : -20);
+    while (G.waste.length) { const c = G.waste.pop(); c.up = false; G.stock.push(c); }
+    stockPasses++;
+    addPts(G.drawMode === 1 ? -100 : -20);
   } else {
-    const n = G.drawMode===3 ? Math.min(3, G.stock.length) : 1;
-    for (let i=0; i<n; i++) { const c=G.stock.pop(); c.up=true; G.waste.push(c); }
+    const n = G.drawMode === 3 ? Math.min(3, G.stock.length) : 1;
+    for (let i = 0; i < n; i++) { const c = G.stock.pop(); c.up = true; G.waste.push(c); }
   }
   G.moves++;
   selState = null;
-  render(); syncUI();
+  renderAnimated(new Set());
+  syncUI();
+  persistState();
 }
 
-// Unified move: removes cards from source, adds to target, handles scoring
 function execMove(cards, fp, fc, fi, tp, tc) {
   saveSnap();
-  hintSet = null;
+  hintSet = null; hintDst = null; hintStock = false;
+  const movedIds = new Set(cards.map(cardId));
 
-  // Remove from source
-  if (fp === 'waste')   { G.waste.pop(); }
-  else if (fp === 'tab')  { G.tab[fc].splice(fi); }
-  else if (fp === 'found'){ G.found[fc].pop(); }
+  if (fp === 'waste')  G.waste.pop();
+  else if (fp === 'tab')   G.tab[fc].splice(fi);
+  else if (fp === 'found') G.found[fc].pop();
 
-  // Add to target
-  if (tp === 'tab')   { G.tab[tc].push(...cards); }
-  else if (tp === 'found') { G.found[tc].push(cards[0]); }
+  if (tp === 'tab')   G.tab[tc].push(...cards);
+  else if (tp === 'found') G.found[tc].push(cards[0]);
 
-  // Flip revealed card
   if (fp === 'tab') {
     const src = G.tab[fc];
-    if (src.length && !src[src.length-1].up) {
-      src[src.length-1].up = true;
-      addPts(5);
-    }
+    if (src.length && !src[src.length - 1].up) { src[src.length - 1].up = true; addPts(5); }
   }
-
-  // Points
-  if (fp==='waste'  && tp==='tab')   addPts(5);
-  if (fp==='waste'  && tp==='found') addPts(10);
-  if (fp==='tab'    && tp==='found') addPts(10);
-  if (fp==='found'  && tp==='tab')   addPts(-15);
+  if (fp === 'waste'  && tp === 'tab')   addPts(5);
+  if (fp === 'waste'  && tp === 'found') addPts(10);
+  if (fp === 'tab'    && tp === 'found') addPts(10);
+  if (fp === 'found'  && tp === 'tab')   addPts(-15);
 
   G.moves++;
   selState = null;
-  render(); syncUI(); checkWin();
+  renderAnimated(movedIds);
+  syncUI();
+  checkWin();
+  persistState();
 }
 
 function tryAutoFound(card, fp, fc, fi) {
-  // 1. Try foundation — only for the top card of a pile
   const isTopCard = fp !== 'tab' || fi === G.tab[fc].length - 1;
   if (isTopCard) {
     const dfi = bestFoundIdx(card);
-    if (dfi >= 0) {
-      execMove([card], fp, fc, fi, 'found', dfi);
-      return true;
-    }
+    if (dfi >= 0) { execMove([card], fp, fc, fi, 'found', dfi); return true; }
   }
-
-  // 2. Try tableau — prefer a column that would reveal a face-down card
-  const cards = fp==='tab' ? G.tab[fc].slice(fi) : [card];
-
-  // Score each candidate column: +1 if move reveals a face-down card below source
+  const cards = fp === 'tab' ? G.tab[fc].slice(fi) : [card];
   let bestCol = -1, bestScore = -1;
-  for (let tc=0; tc<7; tc++) {
-    if (fp==='tab' && tc===fc) continue;
+  for (let tc = 0; tc < 7; tc++) {
+    if (fp === 'tab' && tc === fc) continue;
     if (!canStack(cards[0], tc)) continue;
     let score = 0;
-    // Would this reveal a face-down card in the source column?
-    if (fp==='tab') {
-      const below = G.tab[fc][fi-1];
-      if (below && !below.up) score += 2;   // exposes a face-down card — high priority
-    }
-    // Prefer columns that already have cards (avoid moving sequences to empty columns
-    // unless necessary, so Kings aren't wasted on empty columns pointlessly)
+    if (fp === 'tab') { const b = G.tab[fc][fi - 1]; if (b && !b.up) score += 2; }
     if (G.tab[tc].length > 0) score += 1;
-    if (score > bestScore) { bestScore=score; bestCol=tc; }
+    if (score > bestScore) { bestScore = score; bestCol = tc; }
   }
-
-  if (bestCol >= 0) {
-    execMove(cards, fp, fc, fi, 'tab', bestCol);
-    return true;
-  }
-
+  if (bestCol >= 0) { execMove(cards, fp, fc, fi, 'tab', bestCol); return true; }
   return false;
-}
-
-// ════════════════════════════════════════════════════
-//  WIN CHECK
-// ════════════════════════════════════════════════════
-function checkWin() {
-  if (G.found.reduce((s,f)=>s+f.length,0) < 52) return;
-  clearInterval(timerID);
-  document.getElementById('win-stats').innerHTML =
-    `Score: <b>${G.score}</b> &nbsp;·&nbsp; Time: <b>${fmtTime()}</b> &nbsp;·&nbsp; Moves: <b>${G.moves}</b>`;
-  document.getElementById('win-overlay').classList.add('show');
-}
-
-// ════════════════════════════════════════════════════
-//  HINT
-// ════════════════════════════════════════════════════
-function doHint() {
-  hintSet = new Set();
-
-  // Waste → foundation or tableau
-  if (G.waste.length) {
-    const c = G.waste[G.waste.length-1];
-    if (bestFoundIdx(c) >= 0) { hintSet.add(c); render(); return; }
-    for (let tc=0; tc<7; tc++) if (canStack(c,tc)) { hintSet.add(c); render(); return; }
-  }
-
-  // Tableau top → foundation or tableau
-  for (let col=0; col<7; col++) {
-    const pile = G.tab[col];
-    if (!pile.length) continue;
-    const top = pile[pile.length-1];
-    if (!top.up) continue;
-    if (bestFoundIdx(top)>=0) { hintSet.add(top); render(); return; }
-    for (let tc=0; tc<7; tc++) {
-      if (tc===col) continue;
-      if (canStack(top,tc)) { hintSet.add(top); render(); return; }
-    }
-  }
-
-  // Tableau sequence moves
-  for (let col=0; col<7; col++) {
-    const pile = G.tab[col];
-    for (let ci=0; ci<pile.length; ci++) {
-      const c = pile[ci];
-      if (!c.up) continue;
-      for (let tc=0; tc<7; tc++) {
-        if (tc===col) continue;
-        if (canStack(c,tc)) { hintSet.add(c); render(); return; }
-      }
-    }
-  }
-
-  // Stock?
-  if (G.stock.length || G.waste.length) {
-    // Just flash stock area - no card to highlight
-  }
-  hintSet = null;
-  render();
 }
 
 // ════════════════════════════════════════════════════
@@ -871,50 +987,288 @@ function autoComplete() {
   let moved = true;
   while (moved) {
     moved = false;
-
-    // Waste top
     if (G.waste.length) {
-      const c = G.waste[G.waste.length-1];
+      const c = G.waste[G.waste.length - 1];
       const fi = bestFoundIdx(c);
-      if (fi >= 0) {
-        G.waste.pop();
-        G.found[fi].push(c);
-        addPts(10); G.moves++;
-        moved = true; continue;
-      }
+      if (fi >= 0) { G.waste.pop(); G.found[fi].push(c); addPts(10); G.moves++; moved = true; continue; }
     }
-
-    // Tableau tops
-    for (let col=0; col<7; col++) {
+    for (let col = 0; col < 7; col++) {
       if (!G.tab[col].length) continue;
-      const c = G.tab[col][G.tab[col].length-1];
+      const c = G.tab[col][G.tab[col].length - 1];
       if (!c.up) continue;
       const fi = bestFoundIdx(c);
       if (fi >= 0) {
         G.tab[col].pop();
         const src = G.tab[col];
-        if (src.length && !src[src.length-1].up) { src[src.length-1].up=true; addPts(5); }
-        G.found[fi].push(c);
-        addPts(10); G.moves++;
-        moved = true; break;
+        if (src.length && !src[src.length - 1].up) { src[src.length - 1].up = true; addPts(5); }
+        G.found[fi].push(c); addPts(10); G.moves++; moved = true; break;
       }
     }
   }
-  selState=null; hintSet=null;
-  render(); syncUI(); checkWin();
+  selState = null; hintSet = null; hintDst = null; hintStock = false;
+  render(); syncUI(); checkWin(); persistState();
 }
 
 // ════════════════════════════════════════════════════
-//  RENDERING
+//  WIN
 // ════════════════════════════════════════════════════
-const boardEl = document.getElementById('board');
-const ghostEl = document.getElementById('drag-ghost');
+function checkWin() {
+  if (G.found.reduce((s, f) => s + f.length, 0) < 52) return;
+  clearInterval(timerID);
+  clearSave();
+  recordWin(G.score, elapsed);
+  document.getElementById('win-stats').innerHTML =
+    `Score: <b>${G.score}</b> &nbsp;·&nbsp; Time: <b>${fmtTime(elapsed)}</b> &nbsp;·&nbsp; Moves: <b>${G.moves}</b>`;
+  setTimeout(() => document.getElementById('win-overlay').classList.add('show'), 2000);
+  spawnBouncers();
+}
+
+// ── Bouncing card win animation ─────────────────────
+const bouncerEls = [];
+
+function clearBouncers() {
+  bouncerEls.forEach(el => el.remove());
+  bouncerEls.length = 0;
+}
+
+function spawnBouncers() {
+  clearBouncers();
+  // Collect all foundation cards and spawn them from their pile positions
+  const allCards = [];
+  G.found.forEach((pile, fi) => {
+    pile.forEach(card => allCards.push({ card, fi }));
+  });
+
+  allCards.forEach(({ card, fi }, idx) => {
+    setTimeout(() => {
+      const fx = cx(3 + fi) + CW / 2;
+      const fy = ROW1_Y + CH;
+      spawnOneBouncer(card, fx, fy);
+    }, idx * 40);
+  });
+}
+
+function spawnOneBouncer(card, startX, startY) {
+  const el = document.createElement('div');
+  el.className = 'bouncer ' + (isRed(card.suit) ? 'red' : 'black');
+  el.textContent = card.suit;
+  document.body.appendChild(el);
+  bouncerEls.push(el);
+
+  const W = 62, H = 88;
+  let x = startX - W / 2;
+  let y = startY - H;
+  let vx = (Math.random() - 0.5) * 18;
+  let vy = -(Math.random() * 18 + 8);
+  const g = 0.6;
+  let bounces = 0;
+
+  function step() {
+    if (!document.body.contains(el)) return;
+    vy += g;
+    x += vx;
+    y += vy;
+
+    const floor = window.innerHeight - H - 58; // above toolbar
+    if (y >= floor) {
+      y = floor;
+      vy *= -0.65;
+      vx *= 0.88;
+      bounces++;
+    }
+    if (x < 0) { x = 0; vx = Math.abs(vx) * 0.8; }
+    if (x > window.innerWidth - W) { x = window.innerWidth - W; vx = -Math.abs(vx) * 0.8; }
+
+    el.style.left = x + 'px';
+    el.style.top  = y + 'px';
+
+    if (bounces < 5 || Math.abs(vy) > 1) requestAnimationFrame(step);
+    else setTimeout(() => el.remove(), 2000);
+  }
+  requestAnimationFrame(step);
+}
+
+// ════════════════════════════════════════════════════
+//  STUCK DETECTION
+// ════════════════════════════════════════════════════
+// Draw 1: allow 1 recycle (2 passes total).
+// Draw 3: allow 2 recycles (3 passes total).
+function maxRecycles() { return G.drawMode === 1 ? 1 : 2; }
+
+function hasImmediateMove() {
+  // Check waste top
+  if (G.waste.length > 0) {
+    const c = G.waste[G.waste.length - 1];
+    if (bestFoundIdx(c) >= 0) return true;
+    for (let tc = 0; tc < 7; tc++) if (canStack(c, tc)) return true;
+  }
+  // Check tableau
+  for (let col = 0; col < 7; col++) {
+    const pile = G.tab[col];
+    for (let ci = 0; ci < pile.length; ci++) {
+      const c = pile[ci];
+      if (!c.up) continue;
+      if (ci === pile.length - 1 && bestFoundIdx(c) >= 0) return true;
+      for (let tc = 0; tc < 7; tc++) {
+        if (tc === col) continue;
+        if (canStack(c, tc)) return true;
+      }
+    }
+  }
+  return false;
+}
+
+function isStuck() {
+  if (G.stock.length > 0) return false;      // can still draw
+  if (hasImmediateMove()) return false;       // something to play right now
+  // No immediate moves and stock is empty.
+  // Allow recycling waste up to maxRecycles() times.
+  if (G.waste.length > 0 && stockPasses < maxRecycles()) return false;
+  return true;
+}
+
+// ════════════════════════════════════════════════════
+//  HINT  —  highlights both source and destination
+// ════════════════════════════════════════════════════
+function showHint(cards, dstPile, dstCol) {
+  hintSet = new Set(Array.isArray(cards) ? cards : [cards]);
+  hintDst = { pile: dstPile, col: dstCol };
+  render();
+}
+
+function doHint() {
+  hintSet = new Set(); hintDst = null;
+
+  // 1. Waste → foundation
+  if (G.waste.length) {
+    const c = G.waste[G.waste.length - 1];
+    const fi = bestFoundIdx(c);
+    if (fi >= 0) { showHint(c, 'found', fi); return; }
+  }
+
+  // 2. Tableau top → foundation
+  for (let col = 0; col < 7; col++) {
+    const pile = G.tab[col];
+    if (!pile.length) continue;
+    const top = pile[pile.length - 1];
+    if (!top.up) continue;
+    const fi = bestFoundIdx(top);
+    if (fi >= 0) { showHint(top, 'found', fi); return; }
+  }
+
+  // 3. Waste → tableau
+  if (G.waste.length) {
+    const c = G.waste[G.waste.length - 1];
+    for (let tc = 0; tc < 7; tc++) {
+      if (canStack(c, tc)) { showHint(c, 'tab', tc); return; }
+    }
+  }
+
+  // 4. Tableau top → tableau  (useful moves: uncovers face-down, or moves to non-empty)
+  for (let col = 0; col < 7; col++) {
+    const pile = G.tab[col];
+    if (!pile.length) continue;
+    const top = pile[pile.length - 1];
+    if (!top.up) continue;
+    for (let tc = 0; tc < 7; tc++) {
+      if (tc === col) continue;
+      if (!canStack(top, tc)) continue;
+      // Prefer moves that uncover face-down or land on non-empty
+      const hasHidden = pile.some(c => !c.up);
+      if (hasHidden || G.tab[tc].length > 0) { showHint(top, 'tab', tc); return; }
+    }
+  }
+
+  // 5. Buried face-up card → tableau  (only if it uncovers face-down cards)
+  for (let col = 0; col < 7; col++) {
+    const pile = G.tab[col];
+    for (let ci = 0; ci < pile.length - 1; ci++) {  // not top card (covered by loop 4)
+      const c = pile[ci];
+      if (!c.up) continue;
+      // Only suggest if there are face-down cards below ci
+      const hasHiddenBelow = pile.slice(0, ci).some(x => !x.up);
+      if (!hasHiddenBelow) continue;
+      for (let tc = 0; tc < 7; tc++) {
+        if (tc === col) continue;
+        if (canStack(c, tc)) { showHint(pile.slice(ci), 'tab', tc); return; }
+      }
+    }
+  }
+
+  // 6. Any top card to empty column (last resort — valid but may not help)
+  for (let col = 0; col < 7; col++) {
+    const pile = G.tab[col];
+    if (!pile.length) continue;
+    const top = pile[pile.length - 1];
+    if (!top.up) continue;
+    for (let tc = 0; tc < 7; tc++) {
+      if (tc === col) continue;
+      if (canStack(top, tc)) { showHint(top, 'tab', tc); return; }
+    }
+  }
+
+  // 7. Suggest drawing/recycling — only if it's still allowed and could help
+  const canDraw    = G.stock.length > 0;
+  const canRecycle = G.stock.length === 0 && G.waste.length > 0 && stockPasses < maxRecycles();
+  if (canDraw || canRecycle) {
+    hintSet = null; hintDst = null;
+    hintStock = true;
+    render();
+    return;
+  }
+
+  hintSet = null; hintDst = null; hintStock = false;
+  render();
+}
+
+// ════════════════════════════════════════════════════
+//  RENDERING  +  FLIP ANIMATION
+// ════════════════════════════════════════════════════
+const boardEl  = document.getElementById('board');
+const ghostEl  = document.getElementById('drag-ghost');
 
 function cx(i) {
-  const w = window.innerWidth;
-  const total = 6*COL_W + CW;
-  const off = Math.max(10, (w-total)/2|0);
-  return off + i*COL_W;
+  const total = 6 * COL_W + CW;
+  const off   = Math.max(10, (window.innerWidth - total) / 2 | 0);
+  return off + i * COL_W;
+}
+
+// Capture board-relative positions of all face-up cards by identity
+function capturePositions() {
+  const map = new Map();
+  boardEl.querySelectorAll('[data-cid]').forEach(el => {
+    const r = el.getBoundingClientRect();
+    const br = boardEl.getBoundingClientRect();
+    map.set(el.dataset.cid, { x: r.left - br.left, y: r.top - br.top });
+  });
+  return map;
+}
+
+// Render then animate cards that moved
+function renderAnimated(movedIds) {
+  const oldPos = capturePositions();
+  render();
+  if (!movedIds || !movedIds.size) return;
+
+  requestAnimationFrame(() => {
+    const br = boardEl.getBoundingClientRect();
+    boardEl.querySelectorAll('[data-cid]').forEach(el => {
+      const cid = el.dataset.cid;
+      if (!movedIds.has(cid) || !oldPos.has(cid)) return;
+      const old = oldPos.get(cid);
+      const cur = el.getBoundingClientRect();
+      const dx  = old.x - (cur.left - br.left);
+      const dy  = old.y - (cur.top  - br.top);
+      if (Math.abs(dx) < 2 && Math.abs(dy) < 2) return;
+      el.style.transition = 'none';
+      el.style.transform  = `translate(${dx}px,${dy}px)`;
+      requestAnimationFrame(() => {
+        el.classList.add('card-anim');
+        el.style.transform = '';
+        el.addEventListener('transitionend', () => el.classList.remove('card-anim'), { once: true });
+      });
+    });
+  });
 }
 
 function makeCard(card, x, y, z) {
@@ -929,34 +1283,23 @@ function makeCard(card, x, y, z) {
 
   const color = isRed(card.suit) ? 'red' : 'black';
   el.classList.add('card-face', color);
+  el.dataset.cid = cardId(card); // for FLIP animation
 
-  // Hint glow
   if (hintSet && hintSet.has(card)) el.classList.add('card-hint');
 
-  // Corners
   const tl = document.createElement('div');
   tl.className = 'corner tl';
   tl.innerHTML = `${card.rank}<br>${card.suit}`;
-
   const br = document.createElement('div');
   br.className = 'corner br';
   br.innerHTML = `${card.rank}<br>${card.suit}`;
-
   el.appendChild(tl);
   el.appendChild(br);
 
   if (FACES.has(card.rank)) {
-    // Face card art
     const art = document.createElement('div');
     art.className = 'face-art';
-    const ltr = document.createElement('div');
-    ltr.className = 'face-letter';
-    ltr.textContent = card.rank;
-    const sym = document.createElement('div');
-    sym.className = 'face-suit';
-    sym.textContent = card.suit;
-    art.appendChild(ltr);
-    art.appendChild(sym);
+    art.innerHTML = `<div class="face-letter">${card.rank}</div><div class="face-suit">${card.suit}</div>`;
     el.appendChild(art);
   } else if (card.rank === 'A') {
     const p = document.createElement('div');
@@ -964,130 +1307,150 @@ function makeCard(card, x, y, z) {
     p.textContent = card.suit;
     el.appendChild(p);
   } else {
-    const layout = PIPS[card.rank];
-    if (layout) {
-      layout.forEach(([xp, yp, inv]) => {
-        const p = document.createElement('div');
-        p.className = 'pip' + (inv ? ' inv' : '');
-        p.style.left = xp + '%';
-        p.style.top  = yp + '%';
-        p.textContent = card.suit;
-        el.appendChild(p);
-      });
-    }
+    (PIPS[card.rank] || []).forEach(([xp, yp, inv]) => {
+      const p = document.createElement('div');
+      p.className = 'pip' + (inv ? ' inv' : '');
+      p.style.left = xp + '%';
+      p.style.top  = yp + '%';
+      p.textContent = card.suit;
+      el.appendChild(p);
+    });
   }
-
   return el;
 }
 
-function makeSlot(cls, x, y, extra) {
+function makeSlot(cls, x, y, attrs) {
   const el = document.createElement('div');
   el.className = 'slot ' + cls;
   el.style.cssText = `left:${x}px;top:${y}px`;
-  if (extra) for (const [k,v] of Object.entries(extra)) el.setAttribute(k,v);
+  if (attrs) for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
   return el;
 }
 
 function render() {
   boardEl.innerHTML = '';
 
-  // ── Stock ──────────────────────────────────────────────
+  // ── Stock ──────────────────────────────────────────
   const sx = cx(0), sy = ROW1_Y;
-  if (G.stock.length === 0) {
-    const sl = makeSlot('slot-stock-empty', sx, sy);
+  if (!G.stock.length) {
+    const sl = makeSlot('slot-stock-empty' + (hintStock ? ' slot-hint' : ''), sx, sy);
     sl.addEventListener('click', clickStock);
     boardEl.appendChild(sl);
   } else {
-    const back = makeCard({up:false}, sx, sy, 5);
+    const back = makeCard({ up: false }, sx, sy, 5);
     back.style.cursor = 'pointer';
+    if (hintStock) back.style.boxShadow = '0 0 0 3px #fbbf24, 0 2px 6px rgba(0,0,0,0.45)';
     const cnt = document.createElement('div');
     cnt.style.cssText = 'position:absolute;bottom:5px;right:7px;font-size:0.6em;color:rgba(255,255,255,0.5);font-weight:700;pointer-events:none;';
     cnt.textContent = G.stock.length;
     back.appendChild(cnt);
     back.addEventListener('click', clickStock);
+    addTouchClick(back, clickStock);
     boardEl.appendChild(back);
   }
 
-  // ── Waste ──────────────────────────────────────────────
+  // ── Waste ───────────────────────────────────────────
   const wx = cx(1), wy = ROW1_Y;
   const wasteSlot = makeSlot(G.waste.length === 0 ? 'slot-solve' : '', wx, wy);
-  if (G.waste.length === 0) wasteSlot.addEventListener('click', autoComplete);
+  if (!G.waste.length) {
+    wasteSlot.addEventListener('click', autoComplete);
+    addTouchClick(wasteSlot, autoComplete);
+  }
   boardEl.appendChild(wasteSlot);
 
   if (G.waste.length) {
-    const showFrom = G.drawMode===3 ? Math.max(0, G.waste.length-3) : G.waste.length-1;
+    const showFrom = G.drawMode === 3 ? Math.max(0, G.waste.length - 3) : G.waste.length - 1;
     for (let i = showFrom; i < G.waste.length; i++) {
-      const card = G.waste[i];
-      const isTop = i === G.waste.length-1;
-      const xOff  = G.drawMode===3 ? (i-showFrom)*20 : 0;
-      const el = makeCard(card, wx+xOff, wy, 8+i);
+      const card  = G.waste[i];
+      const isTop = i === G.waste.length - 1;
+      const xOff  = G.drawMode === 3 ? (i - showFrom) * 20 : 0;
+      const el    = makeCard(card, wx + xOff, wy, 8 + i);
       if (isTop) {
-        if (selState && selState.pile==='waste') el.classList.add('card-sel');
-        el.addEventListener('mousedown', e => {
-          if (e.detail >= 2) { e.preventDefault(); tryAutoFound(card,'waste',0,i); return; }
-          startDrag(e,'waste',0,i,[card]);
-        });
-        el.addEventListener('click', e => onCardClick(e,'waste',0,i,[card]));
+        if (selState && selState.pile === 'waste') el.classList.add('card-sel');
+        addCardHandlers(el, card, 'waste', 0, i, [card]);
       }
       boardEl.appendChild(el);
     }
   }
 
-  // ── Foundations ────────────────────────────────────────
-  for (let fi=0; fi<4; fi++) {
-    const fx = cx(3+fi), fy = ROW1_Y;
-    const isRed_ = RED.has(SUITS[fi]);
-    const sl = makeSlot('slot-foundation'+(isRed_?' red-f':''), fx, fy, {'data-suit':SUITS[fi]});
-    sl.addEventListener('click',    () => onSlotClick('found', fi));
-    sl.addEventListener('mouseup',  () => {/* handled via coords */});
+  // ── Foundations ─────────────────────────────────────
+  for (let fi = 0; fi < 4; fi++) {
+    const fx = cx(3 + fi), fy = ROW1_Y;
+    const isDstFound = hintDst && hintDst.pile === 'found' && hintDst.col === fi;
+    const sl = makeSlot('slot-foundation' + (RED.has(SUITS[fi]) ? ' red-f' : '') + (isDstFound ? ' slot-hint' : ''), fx, fy, { 'data-suit': SUITS[fi] });
+    sl.addEventListener('click', () => onSlotClick('found', fi));
+    addTouchClick(sl, () => onSlotClick('found', fi));
     boardEl.appendChild(sl);
 
     const f = G.found[fi];
     if (f.length) {
-      const card = f[f.length-1];
-      const el = makeCard(card, fx, fy, 12);
-      el.addEventListener('mousedown', e => startDrag(e,'found',fi,f.length-1,[card]));
+      const card = f[f.length - 1];
+      const el   = makeCard(card, fx, fy, 12);
+      if (isDstFound) el.classList.add('card-hint-dst');
+      addCardHandlers(el, card, 'found', fi, f.length - 1, [card]);
       boardEl.appendChild(el);
     }
   }
 
-  // ── Tableau ────────────────────────────────────────────
-  for (let col=0; col<7; col++) {
+  // ── Tableau ──────────────────────────────────────────
+  for (let col = 0; col < 7; col++) {
     const tx = cx(col), ty = TAB_Y;
     const pile = G.tab[col];
-    const sl = makeSlot(pile.length===0 ? 'slot-empty-k' : '', tx, ty);
+    const isDstTab = hintDst && hintDst.pile === 'tab' && hintDst.col === col;
+    const slCls = (pile.length === 0 ? 'slot-empty-k' : '') + (isDstTab && pile.length === 0 ? ' slot-hint' : '');
+    const sl = makeSlot(slCls, tx, ty);
     sl.addEventListener('click', () => onSlotClick('tab', col));
+    addTouchClick(sl, () => onSlotClick('tab', col));
     boardEl.appendChild(sl);
 
     let y = ty;
-    for (let ci=0; ci<pile.length; ci++) {
-      const card = pile[ci];
-      const isTop = ci === pile.length-1;
-      const el = makeCard(card, tx, y, 20+ci);
+    for (let ci = 0; ci < pile.length; ci++) {
+      const card  = pile[ci];
+      const isTop = ci === pile.length - 1;
+      const el    = makeCard(card, tx, y, 20 + ci);
 
       if (card.up) {
-        const isSel = selState && selState.pile==='tab' && selState.col===col && ci>=selState.idx;
-        if (isSel && ci===selState.idx) el.classList.add('card-sel');
-
-        el.addEventListener('mousedown', e => {
-          if (e.detail >= 2) { e.preventDefault(); tryAutoFound(card,'tab',col,ci); return; }
-          startDrag(e,'tab',col,ci,pile.slice(ci));
-        });
-        el.addEventListener('click', e => {
-          onCardClick(e,'tab',col,ci,pile.slice(ci));
-        });
+        const isSel = selState && selState.pile === 'tab' && selState.col === col && ci >= selState.idx;
+        if (isSel && ci === selState.idx) el.classList.add('card-sel');
+        if (isDstTab && isTop) el.classList.add('card-hint-dst');
+        addCardHandlers(el, card, 'tab', col, ci, pile.slice(ci));
       }
-
       boardEl.appendChild(el);
       y += card.up ? FU_OV : FD_OV;
     }
 
-    // Stretch slot to cover full column
-    const slotH = Math.max(CH, y - ty + CH - (pile.length ? (pile[pile.length-1].up ? FU_OV : FD_OV) : 0));
-    sl.style.height = slotH + 'px';
+    const slotH = pile.reduce((h, c) => h + (c.up ? FU_OV : FD_OV), 0) + CH;
+    sl.style.height = Math.max(CH, slotH) + 'px';
   }
+}
 
-  syncUI();
+// ════════════════════════════════════════════════════
+//  CARD EVENT HANDLERS  (mouse + touch)
+// ════════════════════════════════════════════════════
+function addCardHandlers(el, card, pile, col, idx, cards) {
+  // Double-click / double-tap detection via e.detail (mouse) or timing (touch)
+  el.addEventListener('mousedown', e => {
+    if (e.detail >= 2) { e.preventDefault(); tryAutoFound(card, pile, col, idx); return; }
+    startDrag(e, pile, col, idx, cards);
+  });
+  el.addEventListener('touchstart', e => {
+    e.preventDefault();
+    const now = Date.now();
+    const cid = cardId(card);
+    if (now - lastTap.time < 300 && lastTap.cid === cid) {
+      lastTap = { time: 0, cid: '' };
+      tryAutoFound(card, pile, col, idx);
+      return;
+    }
+    lastTap = { time: now, cid };
+    startDrag(e, pile, col, idx, cards);
+  }, { passive: false });
+  el.addEventListener('click', e => onCardClick(e, pile, col, idx, cards));
+}
+
+// Simple touch → click passthrough for non-draggable elements
+function addTouchClick(el, fn) {
+  el.addEventListener('touchend', e => { e.preventDefault(); fn(); }, { passive: false });
 }
 
 // ════════════════════════════════════════════════════
@@ -1096,198 +1459,131 @@ function render() {
 function onCardClick(e, pile, col, idx, cards) {
   e.stopPropagation();
   if (isDragging) return;
-  hintSet = null;
-
+  hintSet = null; hintDst = null; hintStock = false;
   if (selState) {
-    // Attempt move onto this card's column
-    const target = pile==='tab' ? col : -1;
-    if (pile==='tab' && canStack(selState.cards[0], col)) {
+    if (pile === 'tab' && canStack(selState.cards[0], col)) {
       execMove(selState.cards, selState.pile, selState.col, selState.idx, 'tab', col);
-    } else if (pile==='found') {
-      if (selState.cards.length===1 && canFound(selState.cards[0], col)) {
-        execMove(selState.cards, selState.pile, selState.col, selState.idx, 'found', col);
-      } else { selState=null; render(); }
+    } else if (pile === 'found' && selState.cards.length === 1 && canFound(selState.cards[0], col)) {
+      execMove(selState.cards, selState.pile, selState.col, selState.idx, 'found', col);
+    } else if (selState.pile === pile && selState.col === col && selState.idx === idx) {
+      selState = null; render();
     } else {
-      // clicking own card: deselect or reselect deeper
-      if (selState.pile===pile && selState.col===col && selState.idx===idx) {
-        selState=null; render();
-      } else {
-        selState={pile,col,idx,cards};
-        render();
-      }
+      selState = { pile, col, idx, cards }; render();
     }
   } else {
-    selState = {pile,col,idx,cards};
-    render();
+    selState = { pile, col, idx, cards }; render();
   }
 }
 
 function onSlotClick(pile, col) {
   if (!selState) return;
-  hintSet = null;
-  if (pile==='tab') {
-    if (canStack(selState.cards[0], col)) {
-      execMove(selState.cards, selState.pile, selState.col, selState.idx, 'tab', col);
-    } else { selState=null; render(); }
-  } else if (pile==='found') {
-    if (selState.cards.length===1 && canFound(selState.cards[0], col)) {
-      execMove(selState.cards, selState.pile, selState.col, selState.idx, 'found', col);
-    } else { selState=null; render(); }
-  }
+  hintSet = null; hintDst = null; hintStock = false;
+  if (pile === 'tab' && canStack(selState.cards[0], col)) {
+    execMove(selState.cards, selState.pile, selState.col, selState.idx, 'tab', col);
+  } else if (pile === 'found' && selState.cards.length === 1 && canFound(selState.cards[0], col)) {
+    execMove(selState.cards, selState.pile, selState.col, selState.idx, 'found', col);
+  } else { selState = null; render(); }
 }
 
-boardEl.addEventListener('click', () => {
-  if (selState) { selState=null; render(); }
-});
+boardEl.addEventListener('click', () => { if (selState) { selState = null; render(); } });
 
 // ════════════════════════════════════════════════════
-//  DRAG & DROP
+//  DRAG & DROP  (mouse + touch)
 // ════════════════════════════════════════════════════
 let isDragging = false;
-let dragInfo   = null;
-
-function wasteTopX() {
-  const n = G.waste.length;
-  return cx(1) + (G.drawMode===3 ? Math.min(n-1,2)*20 : 0);
-}
 
 function startDrag(e, fp, fc, fi, cards) {
-  e.preventDefault();
-  e.stopPropagation();
-  selState = null;
-  hintSet  = null;
+  const isTouch = e.type === 'touchstart';
+  const pt      = isTouch ? e.touches[0] : e;
 
-  // Compute card's rendered position
+  e.preventDefault();
+  if (!isTouch) e.stopPropagation();
+  selState = null; hintSet = null; hintDst = null; hintStock = false;
+
+  // Compute card position on board
   let cardX, cardY;
   const boardRect = boardEl.getBoundingClientRect();
-
   if (fp === 'waste') {
-    cardX = wasteTopX();
+    cardX = cx(1) + (G.drawMode === 3 ? Math.min(G.waste.length - 1, 2) * 20 : 0);
     cardY = ROW1_Y;
   } else if (fp === 'found') {
-    cardX = cx(3+fc);
-    cardY = ROW1_Y;
+    cardX = cx(3 + fc); cardY = ROW1_Y;
   } else {
     cardX = cx(fc);
-    let y = TAB_Y;
-    for (let i=0; i<fi; i++) y += G.tab[fc][i].up ? FU_OV : FD_OV;
-    cardY = y;
+    cardY = TAB_Y;
+    for (let i = 0; i < fi; i++) cardY += G.tab[fc][i].up ? FU_OV : FD_OV;
   }
 
-  const offX = e.clientX - (boardRect.left + cardX);
-  const offY = e.clientY - (boardRect.top  + cardY);
+  const offX = pt.clientX - (boardRect.left + cardX);
+  const offY = pt.clientY - (boardRect.top  + cardY);
 
   // Build ghost
   ghostEl.innerHTML = '';
-  ghostEl.style.transform = `translate(${e.clientX-offX}px,${e.clientY-offY}px)`;
   ghostEl.style.width = CW + 'px';
-  cards.forEach((card,i) => {
-    const el = makeCard(card, 0, i*FU_OV, i);
+  cards.forEach((card, i) => {
+    const el = makeCard(card, 0, i * FU_OV, i);
     el.style.position = 'absolute';
     ghostEl.appendChild(el);
   });
+  ghostEl.style.transform = `translate(${pt.clientX - offX}px,${pt.clientY - offY}px)`;
 
   isDragging = true;
-  dragInfo   = {fp, fc, fi, cards, offX, offY};
 
   function onMove(ev) {
-    ghostEl.style.transform = `translate(${ev.clientX-offX}px,${ev.clientY-offY}px)`;
+    const p = ev.touches ? ev.touches[0] : ev;
+    ghostEl.style.transform = `translate(${p.clientX - offX}px,${p.clientY - offY}px)`;
+    if (ev.touches) ev.preventDefault();
   }
 
   function onUp(ev) {
     document.removeEventListener('mousemove', onMove);
     document.removeEventListener('mouseup',   onUp);
+    document.removeEventListener('touchmove', onMove);
+    document.removeEventListener('touchend',  onUp);
     ghostEl.innerHTML = '';
-    const di = dragInfo;
     isDragging = false;
-    dragInfo   = null;
-    if (!di) return;
 
-    // Find drop target by coordinates
-    const bRect = boardEl.getBoundingClientRect();
-    const bx = ev.clientX - bRect.left;
-    const by = ev.clientY - bRect.top;
+    const p  = ev.changedTouches ? ev.changedTouches[0] : ev;
+    const br = boardEl.getBoundingClientRect();
+    const bx = p.clientX - br.left;
+    const by = p.clientY - br.top;
 
-    // ── Foundation drop (top row) ──────────────────────────
+    // ── Foundation drop ─────────────────────────────
     if (by >= ROW1_Y - 20 && by <= ROW1_Y + CH + 20) {
       let bestFi = -1, bestDist = Infinity;
-      for (let ffi=0; ffi<4; ffi++) {
-        const fx = cx(3+ffi);
-        const dist = Math.abs(bx - (fx + CW/2));
-        if (dist < COL_W/2 && dist < bestDist) { bestDist=dist; bestFi=ffi; }
+      for (let ffi = 0; ffi < 4; ffi++) {
+        const dist = Math.abs(bx - (cx(3 + ffi) + CW / 2));
+        if (dist < COL_W / 2 && dist < bestDist) { bestDist = dist; bestFi = ffi; }
       }
       if (bestFi >= 0) {
-        if (di.cards.length===1 && canFound(di.cards[0], bestFi)) {
-          execMove(di.cards, di.fp, di.fc, di.fi, 'found', bestFi);
+        if (cards.length === 1 && canFound(cards[0], bestFi)) {
+          execMove(cards, fp, fc, fi, 'found', bestFi);
         } else render();
         return;
       }
     }
 
-    // ── Tableau drop ────────────────────────────────────────
+    // ── Tableau drop ─────────────────────────────────
     if (by >= TAB_Y - 20) {
       let bestCol = -1, bestDist = Infinity;
-      for (let tc=0; tc<7; tc++) {
-        const tx = cx(tc);
-        const dist = Math.abs(bx - (tx + CW/2));
-        if (dist < COL_W/2 && dist < bestDist) { bestDist=dist; bestCol=tc; }
+      for (let tc = 0; tc < 7; tc++) {
+        const dist = Math.abs(bx - (cx(tc) + CW / 2));
+        if (dist < COL_W / 2 && dist < bestDist) { bestDist = dist; bestCol = tc; }
       }
       if (bestCol >= 0) {
-        if (!(di.fp==='tab' && bestCol===di.fc) && canStack(di.cards[0], bestCol)) {
-          execMove(di.cards, di.fp, di.fc, di.fi, 'tab', bestCol);
+        if (!(fp === 'tab' && bestCol === fc) && canStack(cards[0], bestCol)) {
+          execMove(cards, fp, fc, fi, 'tab', bestCol);
         } else render();
         return;
       }
     }
-
     render();
   }
 
   document.addEventListener('mousemove', onMove);
   document.addEventListener('mouseup',   onUp);
-}
-
-// ════════════════════════════════════════════════════
-//  STUCK DETECTION
-//
-//  Checks every legal move type:
-//   1. Stock can be drawn from
-//   2. Waste top → foundation or tableau
-//   3. Any face-up tableau card → foundation (top only)
-//      or → another tableau column (including sequences)
-//  Returns false the moment any legal move is found.
-// ════════════════════════════════════════════════════
-function isStuck() {
-  // Can still draw from stock
-  if (G.stock.length > 0) return false;
-
-  // Waste top playable?
-  if (G.waste.length > 0) {
-    const c = G.waste[G.waste.length - 1];
-    if (bestFoundIdx(c) >= 0) return false;
-    for (let tc = 0; tc < 7; tc++) if (canStack(c, tc)) return false;
-  }
-
-  // Any tableau move possible?
-  for (let col = 0; col < 7; col++) {
-    const pile = G.tab[col];
-    for (let ci = 0; ci < pile.length; ci++) {
-      const c = pile[ci];
-      if (!c.up) continue;
-      // Top card can go to foundation
-      if (ci === pile.length - 1 && bestFoundIdx(c) >= 0) return false;
-      // Any face-up card (or sequence starting here) can go to another column
-      for (let tc = 0; tc < 7; tc++) {
-        if (tc === col) continue;
-        if (canStack(c, tc)) return false;
-      }
-    }
-  }
-
-  // Waste can be recycled back to stock (still costs a move, may unblock)
-  if (G.waste.length > 0) return false;
-
-  return true;
+  document.addEventListener('touchmove', onMove, { passive: false });
+  document.addEventListener('touchend',  onUp);
 }
 
 // ════════════════════════════════════════════════════
@@ -1297,18 +1593,41 @@ function syncUI() {
   document.getElementById('el-score').textContent = G.score;
   document.getElementById('el-moves').textContent = G.moves;
   document.getElementById('btn-undo').disabled = !history.length;
-
-  const stuck = isStuck();
-  document.getElementById('stuck-banner').classList.toggle('show', stuck);
+  document.getElementById('stuck-banner').classList.toggle('show', isStuck());
 }
+
+// ════════════════════════════════════════════════════
+//  FULLSCREEN
+// ════════════════════════════════════════════════════
+function toggleFullscreen() {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(() => {});
+  } else {
+    document.exitFullscreen();
+  }
+}
+document.addEventListener('fullscreenchange', () => {
+  const btn = document.getElementById('btn-fs');
+  if (document.fullscreenElement) {
+    btn.querySelector('.tbtn-icon').textContent = '⛶';
+    btn.lastChild.textContent = 'Exit Full';
+  } else {
+    btn.querySelector('.tbtn-icon').textContent = '⛶';
+    btn.lastChild.textContent = 'Fullscreen';
+  }
+});
 
 // ════════════════════════════════════════════════════
 //  KEYBOARD
 // ════════════════════════════════════════════════════
 document.addEventListener('keydown', e => {
-  if (e.key === 'z' && (e.ctrlKey||e.metaKey)) { undo(); return; }
-  if (e.key === 'n' && (e.ctrlKey||e.metaKey)) { e.preventDefault(); newGame(); return; }
-  if (e.key === 'Escape') { selState=null; hintSet=null; render(); }
+  if (e.key === 'z' && (e.ctrlKey || e.metaKey)) { undo(); return; }
+  if (e.key === 'n' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); newGame(); return; }
+  if (e.key === 'F11') { e.preventDefault(); toggleFullscreen(); return; }
+  if (e.key === 'Escape') {
+    if (document.getElementById('stats-overlay').classList.contains('show')) { closeStats(); return; }
+    selState = null; hintSet = null; hintDst = null; hintStock = false; render();
+  }
   if (e.key === 'h' || e.key === 'H') doHint();
 });
 
@@ -1322,9 +1641,35 @@ window.addEventListener('resize', () => {
 });
 
 // ════════════════════════════════════════════════════
-//  START
+//  BOOT
 // ════════════════════════════════════════════════════
-newGame();
+(function init() {
+  if (tryResume()) {
+    // Restore difficulty + draw UI
+    ['easy','medium','hard','expert'].forEach(k =>
+      document.getElementById('btn-'+k).classList.toggle('active', k === difficulty)
+    );
+    document.getElementById('btn-d1').classList.toggle('active', G.drawMode === 1);
+    document.getElementById('btn-d3').classList.toggle('active', G.drawMode === 3);
+    document.getElementById('el-deal').textContent = dealNum;
+
+    // Restart timer from where we left off
+    clearInterval(timerID);
+    const m = elapsed / 60 | 0, s = elapsed % 60;
+    document.getElementById('el-time').textContent = `${m}:${s.toString().padStart(2, '0')}`;
+    timerID = setInterval(() => {
+      elapsed++;
+      const m2 = elapsed / 60 | 0, s2 = elapsed % 60;
+      document.getElementById('el-time').textContent = `${m2}:${s2.toString().padStart(2, '0')}`;
+      if (elapsed % 5 === 0) persistState();
+    }, 1000);
+
+    render();
+    syncUI();
+  } else {
+    newGame();
+  }
+})();
 </script>
 </body>
 </html>
